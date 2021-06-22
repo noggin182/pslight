@@ -1,0 +1,9 @@
+{
+  "extends": "ts-node/node14/tsconfig.json", 
+  "ts-node": {
+    "files": true
+  },
+  "compilerOptions": {
+
+  }
+}
