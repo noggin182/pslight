@@ -1,9 +1,21 @@
 {
-  "extends": "ts-node/node14/tsconfig.json", 
-  "ts-node": {
-    "files": true
-  },
   "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "lib": ["es2020"],
+    "types": ["node"],
+    "sourceMap": true,
+    "moduleResolution": "node",
 
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+
+    "strict": true,
+
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   }
 }
