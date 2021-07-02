@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { readFileSync } from 'fs';
 import queryString from 'querystring';
 import { PsnBasicPresences, PsnFriends, Token } from './models';
 
@@ -17,10 +18,21 @@ const EXCHANGE_NPSSO = 'https://ca.account.sony.com/api/authz/v3/oauth/authorize
 
 
 export class PsnClient {
-    constructor(private readonly npsso: string) {
+    constructor() {
+        try {
+            const data = readFileSync(`${__dirname}/../../../psn.json`);
+            this.npsso = JSON.parse(data.toString()).npsso;
+        } catch (e) {
+            throw new Error('Error reading NPSSO from psn.json');
+        }
+
+        if (!this.npsso) {
+            throw new Error('Invalid NPSSO');
+        }
     }
 
-    private token: Token | undefined = undefined;
+    private readonly npsso: string;
+    private token: Token | undefined;
 
     private async getNewToken(data: { [key: string]: string }) {
         this.token = (await axios.post<Token>('https://ca.account.sony.com/api/authz/v3/oauth/token', queryString.stringify(data), {
@@ -109,7 +121,7 @@ export class PsnClient {
         return response.data;
     }
 
-    async getFriends(): Promise<{ [accountId: string]: string }> {
+    async getFriends(): Promise<{ [onlineId: string]: string }> {
         const accountIds = (
             await this.get<PsnFriends>('users/me/friends')
         ).friends;
@@ -120,7 +132,7 @@ export class PsnClient {
             )
         ).profiles;
         return Object.fromEntries(
-            accountIds.map((id, index) => [id, friends[index].onlineId])
+            accountIds.map((id, index) => [friends[index].onlineId, id])
         );
     }
 

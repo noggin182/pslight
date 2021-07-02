@@ -1,0 +1,114 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Pslight harness</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <style>
+        :root {
+            --color: #000000;
+        }
+
+        body {
+            background-color: black;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #strip {
+            display: flex;
+            justify-content: space-between;
+            --size: calc(45vw / var(--leds))
+        }
+
+        .light {
+            width: var(--size);
+            height: var(--size);
+            border-radius: 50%;
+            display: inline-flex;
+            filter: blur(2px);
+            position: relative;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--color);
+            overflow: visible;
+        }
+
+        .light::before {
+            content: "";
+            width: calc(var(--size) * 4);
+            height: calc(var(--size) * 4);
+            top: calc(var(--size) * -1.5);
+            left: calc(var(--size) * -1.5);
+            background-color: var(--color);
+            opacity: 0.5;
+            position: absolute;
+            filter: blur(var(--size));
+        }
+
+
+        .light::after {
+            content: "";
+            width: 6px;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="strip"></div>
+
+    <br /><br /><br /><br /><br /><br />
+
+    <button onclick="$ws.send('p:0')" id="p0" disabled>Off</button>
+    <button onclick="$ws.send('p:1')" id="p1" disabled>On</button>
+
+    <script>
+        'use strict';
+
+        const ws = window.$ws = new WebSocket('ws://localhost:8085/');
+        const leds = [];
+        const strip = document.getElementById("strip");
+        ws.onmessage = function (event) {
+            console.log(event.data);
+            const [type, payload] = event.data.split(':', 2);
+            switch (type) {
+                case 'l': {
+                    payload.split('-').forEach((c, i) => {
+                        let led = leds[i];
+                        if (!led) {
+                            led = document.createElement("div");
+                            led.className = "light";
+                            leds.push(led);
+                            strip.appendChild(led);
+                            strip.style.setProperty('--leds', leds.length);
+                        }
+                        led.style.setProperty('--color', '#' + c);
+                    });
+                    break;
+                }
+
+                case 'p':
+                    enableButton('p0', payload !== '0');
+                    enableButton('p1', payload !== '1');
+            }
+
+        };
+
+        function enableButton(id, enabled) {
+            if (enabled) {
+                document.getElementById(id).removeAttribute('disabled');
+            } else {
+                document.getElementById(id).setAttribute('disabled', true);
+            }
+        }
+    </script>
+</body>
+
+</html>
