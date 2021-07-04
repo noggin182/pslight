@@ -1,30 +1,32 @@
-import { PslightConfig } from './config';
-import { PslightHost } from './host';
-import { ActiveSpansSnapshot, DefaultLightStripAnimator, LightStripAnimator } from './light-strip-animator';
+import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
 
-export interface LightStripSpan {
+export interface LedSpan {
     enable(enabled: boolean): void;
 }
 
-export class LightStrip {
-    constructor(private readonly host: PslightHost, public readonly config: PslightConfig) {
-        host.writeLedValues(new Uint32Array(config.numberOfLeds));
+export interface LedStrip {
+    addSpan(color: number, group: number): LedSpan;
+}
 
-        process.on('uncaughtException', () => {
-            // We are likely running headless, so if there is an error try and indicate this using the light strip
+export abstract class AbstractLedStrip {
+    constructor(private readonly length: number) {
+        process.on('uncaughtException', (error) => {
+            // We are likely running headless, so if there is an error try and indicate this using the led strip
             try {
-                const values = new Uint32Array(config.numberOfLeds);
+                const values = new Array(length).fill(0);
                 values[0] = 0xFF0000;
                 values[values.length - 1] = 0xFF0000;
-                host.writeLedValues(values);
+                this.writeLedValues(values);
             } catch (e) {
-                // If we can't show an error using the light strip, then there isn't much we can do
+                // If we can't show an error using the led strip, then there isn't much we can do
             }
 
         });
     }
 
-    private animator: LightStripAnimator = new DefaultLightStripAnimator(this.host, this.config);
+    abstract writeLedValues(leds: number[]): void;
+
+    private animator: LedStripAnimator = new DefaultLedStripAnimator(this.length, (leds) => this.writeLedValues(leds));
 
     private readonly spans: {
         color: number;
@@ -33,7 +35,7 @@ export class LightStrip {
     }[] = [];
 
 
-    addSpan(color: number, group: number): LightStripSpan {
+    addSpan(color: number, group: number): LedSpan {
         const index = this.spans.length;
         this.spans.push({
             color,

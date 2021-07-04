@@ -1,6 +1,4 @@
 import { performance } from 'perf_hooks';
-import { PslightConfig } from './config';
-import { PslightHost } from './host';
 
 const ELLIPSES = 0.0002;
 
@@ -12,35 +10,34 @@ export interface ActiveSpansSnapshot {
     colors: number[];
 }
 
-export interface LightStripAnimator {
+export interface LedStripAnimator {
     transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): void;
 }
 
-interface Color {
-    r: number;
-    g: number;
-    b: number;
-}
+type Color = readonly [number, number, number];
+const BLACK: Color = [0, 0, 0];
 
-export class DefaultLightStripAnimator implements LightStripAnimator {
-    constructor(private readonly host: PslightHost, private readonly config: PslightConfig) {
+export class DefaultLedStripAnimator implements LedStripAnimator {
+    constructor(private readonly length: number, private readonly write: (colors: number[]) => void) {
     }
 
-    private currentLights = new Uint32Array(this.config.numberOfLeds);
+    private currentValues: Color[] = new Array(this.length).fill(BLACK);
 
     private timer: NodeJS.Timer | null = null;
 
-    transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): void {
-        const prevLights = this.currentLights;
-        this.currentLights = new Uint32Array(prevLights);
+    private send() {
+        this.write(this.currentValues.map(([r, g, b]) => (r << 16) | (g << 8) | (b)));
+    }
 
-        const current = [...prevLights].map(this.toRgb);
+    transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): void {
+        const previous = [...this.currentValues];
+
         const next = this.spreadColors(to.colors);
 
         const backwards = to.group < from.group
             || (to.group === from.group && to.colors.length == 2);
 
-        const fillSpot = (this.currentLights.length - 1) / 2;
+        const fillSpot = (this.length - 1) / 2;
         const distanceFromFill = next.map((_, i) => {
             const half = fillSpot;
             let pos = Math.abs((i - half) / half);
@@ -55,15 +52,14 @@ export class DefaultLightStripAnimator implements LightStripAnimator {
             return pos;
         });
 
-
         const start = performance.now();
 
         const nextFrame = () => {
             const time = (performance.now() - start) / TRANSITION_DURATION;
 
             if (time >= 1) {
-                this.currentLights = new Uint32Array(next.map(this.fromRgb));
-                this.host.writeLedValues(this.currentLights);
+                this.currentValues = next;
+                this.send();
                 if (this.timer) {
                     global.clearInterval(this.timer);
                 }
@@ -71,21 +67,17 @@ export class DefaultLightStripAnimator implements LightStripAnimator {
                 return;
             }
 
-            for (let c = 0; c < this.currentLights.length; c++) {
-                const half = (this.currentLights.length - 1) / 2;
+            for (let c = 0; c < this.currentValues.length; c++) {
+                const half = (this.currentValues.length - 1) / 2;
                 let pos = Math.abs((c - half) / half);
 
                 if (backwards) {
                     pos = 1 - pos;
                 }
 
-                this.currentLights[c] = this.fromRgb({
-                    r: this.interpolate(current[c].r, next[c].r, time, distanceFromFill[c]),
-                    g: this.interpolate(current[c].g, next[c].g, time, distanceFromFill[c]),
-                    b: this.interpolate(current[c].b, next[c].b, time, distanceFromFill[c])
-                });
+                this.currentValues[c] = this.interpolate(previous[c], next[c], time, distanceFromFill[c]);
             }
-            this.host.writeLedValues(this.currentLights);
+            this.send();
         };
 
         if (this.timer) {
@@ -95,35 +87,32 @@ export class DefaultLightStripAnimator implements LightStripAnimator {
         this.timer = global.setInterval(nextFrame, TRANSITION_INTERVAL);
     }
 
-    private interpolate(from: number, to: number, time: number, position: number) {
-        if (from === to) {
-            return to;
-        }
+    private interpolate(from: Color, to: Color, time: number, position: number): Color {
         const delta = Math.max(0, Math.min((time - (position / 2)) * 2, 1));
-        return from + (to - from) * delta;
+        const component = (f: number, t: number) => f + (t - f) * delta;
+        return [
+            component(from[0], to[0]),
+            component(from[1], to[1]),
+            component(from[2], to[2])
+        ];
     }
 
     private toRgb(color: number): Color {
-        return {
-            r: (color >> 16) & 0xFF,
-            g: (color >> 8) & 0xFF,
-            b: (color >> 0) & 0xFF
-        };
-    }
-
-    private fromRgb({ r, g, b }: Color) {
-        return (r << 16) | (g << 8) | (b);
+        return [
+            (color >> 16) & 0xFF,
+            (color >> 8) & 0xFF,
+            (color >> 0) & 0xFF
+        ];
     }
 
     private spreadColors(spanColors: number[]): Color[] {
-        const length = this.config.numberOfLeds;
-        const spanLength = length / spanColors.length;
+        const spanLength = this.length / spanColors.length;
         const spans = spanColors.map(color => ({
             remaining: spanLength,
             color: this.toRgb(color)
         }));
-        const colors: Color[] = new Array(length);
-        for (let i = 0; i < length; i++) {
+        const colors: Color[] = new Array(this.length);
+        for (let i = 0; i < this.length; i++) {
             if (spans[0].remaining >= 1 - ELLIPSES) {
                 colors[i] = spans[0].color;
                 if (--spans[0].remaining < ELLIPSES) {
@@ -144,11 +133,11 @@ export class DefaultLightStripAnimator implements LightStripAnimator {
                     }
                 }
                 const total = partials.reduce((t, p) => t + p.size, 0);
-                colors[i] = partials.reduce((c, p) => ({
-                    r: c.r + p.color.r * p.size / total,
-                    g: c.g + p.color.g * p.size / total,
-                    b: c.b + p.color.b * p.size / total,
-                }), { r: 0, g: 0, b: 0 });
+                colors[i] = partials.reduce((c, p) => [
+                    c[0] + p.color[0] * p.size / total,
+                    c[1] + p.color[1] * p.size / total,
+                    c[2] + p.color[2] * p.size / total,
+                ], BLACK);
             }
         }
         return colors;

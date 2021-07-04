@@ -17,7 +17,12 @@ const EXCHANGE_NPSSO = 'https://ca.account.sony.com/api/authz/v3/oauth/authorize
     });
 
 
-export class PsnClient {
+export interface PsnClient {
+    getFriends(): Promise<{ [onlineId: string]: string }>;
+    getPresences(accountIds: string[]): Promise<{ [accountId: string]: boolean; }>;
+}
+
+export class DefaultPsnClient implements PsnClient {
     constructor() {
         try {
             const data = readFileSync(`${__dirname}/../../../psn.json`);

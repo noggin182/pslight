@@ -5,8 +5,6 @@
 <head>
     <meta charset="utf-8">
     <title>Pslight harness</title>
-    <link rel="stylesheet" href="styles.css">
-
     <style>
         :root {
             --color: #000000;
@@ -16,6 +14,7 @@
             background-color: black;
             padding: 20px;
             text-align: center;
+            color: white;
         }
 
         #strip {
@@ -66,8 +65,22 @@
 
     <br /><br /><br /><br /><br /><br />
 
-    <button onclick="$ws.send('p:0')" id="p0" disabled>Off</button>
-    <button onclick="$ws.send('p:1')" id="p1" disabled>On</button>
+    <div class="controls">
+        <input type="checkbox" id="cb_p" disabled onInput="ws.send('p:' + +this.checked)" />
+        <label for="cb_p">Playstation Power</label>
+
+        <input type="checkbox" id="cb_1" disabled onInput="ws.send('1:' + +this.checked)" />
+        <label for="cb_1">Player 1 online</label>
+
+        <input type="checkbox" id="cb_2" disabled onInput="ws.send('2:' + +this.checked)" />
+        <label for="cb_2">Player 2 online</label>
+
+        <input type="checkbox" id="cb_3" disabled onInput="ws.send('3:' + +this.checked)" />
+        <label for="cb_3">Player 3 online</label>
+
+        <input type="checkbox" id="cb_4" disabled onInput="ws.send('4:' + +this.checked)" />
+        <label for="cb_4">Player 4 online</label>
+    </div>
 
     <script>
         'use strict';
@@ -95,8 +108,13 @@
                 }
 
                 case 'p':
-                    enableButton('p0', payload !== '0');
-                    enableButton('p1', payload !== '1');
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                    document.getElementById('cb_' + type).removeAttribute('disabled');
+                    document.getElementById('cb_' + type).checked = payload === '1';
+                    break;
             }
 
         };
