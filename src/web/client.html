@@ -1,131 +1,131 @@
 <!doctype html>
-
 <html lang="en">
 
 <head>
     <meta charset="utf-8">
-    <title>Pslight harness</title>
+    <title>PSlight Test Harness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Days+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <style>
-        :root {
-            --color: #000000;
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            background-color: black;
-            padding: 20px;
+            background-color: #101010;
             text-align: center;
+            color: white;
+            display: grid;
+            grid-template-columns: auto repeat(4, 1fr) auto;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        h1 {
+            font-family: 'Days One', sans-serif;
+            grid-column: 1 / span 6;
+        }
+
+        main {
+            display: flex;
+            grid-row: 2;
+            grid-column: 1 / span 6;
+            align-self: center;
+            background-color: inherit;
+            padding: 20px;
+            transition: ease-in-out 200ms filter;
+        }
+
+        main span {
+            flex: 1;
+            height: 30px;
+            border-radius: 5px;
+            margin-right: 1px;
+        }
+
+        #cb_l:checked~main {
+            filter: blur(10px);
+        }
+
+        input {
+            position: absolute;
+            height: 0;
+        }
+
+        label {
+            font-family: 'Material Icons Outlined';
+            font-size: 24px;
+            background-color: #252526;
+            color: #cccccc;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+            border-right: 1px solid #252526;
+            z-index: 1;
+        }
+
+        label:first-of-type {
+            background-color: #884422;
             color: white;
         }
 
-        #strip {
-            display: flex;
-            justify-content: space-between;
-            --size: calc(45vw / var(--leds))
+        input[type="checkbox"]:focus+label {
+            text-decoration: underline;
+            color: white;
         }
 
-        .light {
-            width: var(--size);
-            height: var(--size);
-            border-radius: 50%;
-            display: inline-flex;
-            filter: blur(2px);
-            position: relative;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--color);
-            overflow: visible;
-        }
-
-        .light::before {
-            content: "";
-            width: calc(var(--size) * 4);
-            height: calc(var(--size) * 4);
-            top: calc(var(--size) * -1.5);
-            left: calc(var(--size) * -1.5);
-            background-color: var(--color);
-            opacity: 0.5;
-            position: absolute;
-            filter: blur(var(--size));
-        }
-
-
-        .light::after {
-            content: "";
-            width: 6px;
-            height: 3px;
-            background-color: rgba(255, 255, 255, 0.5);
+        input[type="checkbox"]:checked+label {
+            background-color: #2E7D32;
+            color: white;
         }
     </style>
-
 </head>
 
 <body>
+    <h1>PSlight</h1>
 
-    <div id="strip"></div>
+    <input type="checkbox" id="cb_p" accesskey="`" onInput="ws.send('p:' + +this.checked)" autofocus />
+    <label for="cb_p">power_settings_new</label>
 
-    <br /><br /><br /><br /><br /><br />
+    <input type="checkbox" id="cb_1" accesskey="1" onInput="ws.send('1:' + +this.checked)" />
+    <label for="cb_1">looks_one</label>
 
-    <div class="controls">
-        <input type="checkbox" id="cb_p" disabled onInput="ws.send('p:' + +this.checked)" />
-        <label for="cb_p">Playstation Power</label>
+    <input type="checkbox" id="cb_2" accesskey="2" onInput="ws.send('2:' + +this.checked)" />
+    <label for="cb_2">looks_two</label>
 
-        <input type="checkbox" id="cb_1" disabled onInput="ws.send('1:' + +this.checked)" />
-        <label for="cb_1">Player 1 online</label>
+    <input type="checkbox" id="cb_3" accesskey="3" onInput="ws.send('3:' + +this.checked)" />
+    <label for="cb_3">looks_3</label>
 
-        <input type="checkbox" id="cb_2" disabled onInput="ws.send('2:' + +this.checked)" />
-        <label for="cb_2">Player 2 online</label>
+    <input type="checkbox" id="cb_4" accesskey="4" onInput="ws.send('4:' + +this.checked)" />
+    <label for="cb_4">looks_4</label>
 
-        <input type="checkbox" id="cb_3" disabled onInput="ws.send('3:' + +this.checked)" />
-        <label for="cb_3">Player 3 online</label>
+    <input type="checkbox" id="cb_l" accesskey="l" checked />
+    <label for="cb_l">wb_iridescent</label>
 
-        <input type="checkbox" id="cb_4" disabled onInput="ws.send('4:' + +this.checked)" />
-        <label for="cb_4">Player 4 online</label>
-    </div>
+    <main></main>
 
     <script>
         'use strict';
-
-        const ws = window.$ws = new WebSocket('ws://localhost:8085/');
-        const leds = [];
-        const strip = document.getElementById("strip");
+        const ws = new WebSocket('ws://localhost:8085/');
         ws.onmessage = function (event) {
-            console.log(event.data);
             const [type, payload] = event.data.split(':', 2);
-            switch (type) {
-                case 'l': {
-                    payload.split('-').forEach((c, i) => {
-                        let led = leds[i];
-                        if (!led) {
-                            led = document.createElement("div");
-                            led.className = "light";
-                            leds.push(led);
-                            strip.appendChild(led);
-                            strip.style.setProperty('--leds', leds.length);
-                        }
-                        led.style.setProperty('--color', '#' + c);
-                    });
-                    break;
+            console.log(event.data);
+            if (type === 'l') {
+                const colors = payload.split('-');
+                const strip = document.getElementsByTagName("main")[0];
+                while (strip.childElementCount < colors.length) {
+                    strip.appendChild(document.createElement("span"))
                 }
-
-                case 'p':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                    document.getElementById('cb_' + type).removeAttribute('disabled');
-                    document.getElementById('cb_' + type).checked = payload === '1';
-                    break;
-            }
-
-        };
-
-        function enableButton(id, enabled) {
-            if (enabled) {
-                document.getElementById(id).removeAttribute('disabled');
+                strip.childNodes.forEach((el, i) => el.style.backgroundColor = `#${colors[i]}`);
             } else {
-                document.getElementById(id).setAttribute('disabled', true);
+                (document.getElementById(`cb_${type}`) ?? {}).checked = payload === '1';
             }
-        }
+        };
     </script>
 </body>
 
