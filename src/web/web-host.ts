@@ -75,7 +75,7 @@ export class PslightWebHost implements PslightHost {
     }
 
     private broadcast(data: string) {
-        this.wss.clients.forEach(function each(client) {
+        this.wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(data);
             }

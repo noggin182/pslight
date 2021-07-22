@@ -35,4 +35,9 @@ export async function startPsLightApp(host: PslightHost): Promise<void> {
         powerOnSpan.enable(power);
         monitor.enable(power);
     });
+
+    process.on('SIGINT', () => {
+        // turn off the leds and then exit the process
+        host.ledStrip.shutdown().then(() => process.exit(0));
+    });
 }

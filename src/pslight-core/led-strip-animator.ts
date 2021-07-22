@@ -11,7 +11,7 @@ export interface ActiveSpansSnapshot {
 }
 
 export interface LedStripAnimator {
-    transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): void;
+    transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): Promise<void>;
 }
 
 type Color = readonly [number, number, number];
@@ -23,68 +23,75 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
 
     private currentValues: Color[] = new Array(this.length).fill(BLACK);
 
-    private timer: NodeJS.Timer | null = null;
+    private currentTransition: { resolve: () => void, timer: NodeJS.Timer } | null = null;
 
     private send() {
         this.write(this.currentValues.map(([r, g, b]) => (r << 16) | (g << 8) | (b)));
     }
 
-    transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): void {
-        const previous = [...this.currentValues];
+    transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): Promise<void> {
+        if (this.currentTransition) {
+            this.currentTransition.resolve();
+            global.clearInterval(this.currentTransition.timer);
+        }
 
-        const next = this.spreadColors(to.colors);
+        return new Promise(resolve => {
+            const previous = [...this.currentValues];
 
-        const backwards = to.group < from.group
-            || (to.group === from.group && to.colors.length == 2);
+            const next = this.spreadColors(to.colors);
 
-        const fillSpot = (this.length - 1) / 2;
-        const distanceFromFill = next.map((_, i) => {
-            const half = fillSpot;
-            let pos = Math.abs((i - half) / half);
+            const backwards = to.group < from.group
+                || (to.group === from.group && to.colors.length == 2);
 
-            if (to.colors.length === 3) {
-                pos = Math.min(1, pos * 2.6);
-            }
+            const fillSpot = (this.length - 1) / 2;
+            const distanceFromFill = next.map((_, i) => {
+                const half = fillSpot;
+                let pos = Math.abs((i - half) / half);
 
-            if (backwards) {
-                pos = 1 - pos;
-            }
-            return pos;
-        });
-
-        const start = performance.now();
-
-        const nextFrame = () => {
-            const time = (performance.now() - start) / TRANSITION_DURATION;
-
-            if (time >= 1) {
-                this.currentValues = next;
-                this.send();
-                if (this.timer) {
-                    global.clearInterval(this.timer);
+                if (to.colors.length === 3) {
+                    pos = Math.min(1, pos * 2.6);
                 }
-                this.timer = null;
-                return;
-            }
-
-            for (let c = 0; c < this.currentValues.length; c++) {
-                const half = (this.currentValues.length - 1) / 2;
-                let pos = Math.abs((c - half) / half);
 
                 if (backwards) {
                     pos = 1 - pos;
                 }
+                return pos;
+            });
 
-                this.currentValues[c] = this.interpolate(previous[c], next[c], time, distanceFromFill[c]);
-            }
-            this.send();
-        };
+            const start = performance.now();
 
-        if (this.timer) {
-            global.clearInterval(this.timer);
-        }
+            const nextFrame = () => {
+                const time = (performance.now() - start) / TRANSITION_DURATION;
 
-        this.timer = global.setInterval(nextFrame, TRANSITION_INTERVAL);
+                if (time >= 1) {
+                    this.currentValues = next;
+                    this.send();
+                    if (this.currentTransition) {
+                        global.clearInterval(this.currentTransition.timer);
+                    }
+                    this.currentTransition = null;
+                    resolve();
+                    return;
+                }
+
+                for (let c = 0; c < this.currentValues.length; c++) {
+                    const half = (this.currentValues.length - 1) / 2;
+                    let pos = Math.abs((c - half) / half);
+
+                    if (backwards) {
+                        pos = 1 - pos;
+                    }
+
+                    this.currentValues[c] = this.interpolate(previous[c], next[c], time, distanceFromFill[c]);
+                }
+                this.send();
+            };
+
+            this.currentTransition = {
+                timer: global.setInterval(nextFrame, TRANSITION_INTERVAL),
+                resolve
+            };
+        });
     }
 
     private interpolate(from: Color, to: Color, time: number, position: number): Color {
