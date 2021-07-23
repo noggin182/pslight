@@ -23,7 +23,7 @@ export async function startPsLightApp(host: PslightHost): Promise<void> {
         : Object.entries(friendIdMap).slice(0, 4);
 
     const monitor = new PresenceMonitor(host.psnClient);
-    for (const [accountId, onlineId] of friendAccounts) {
+    for (const [onlineId, accountId] of friendAccounts) {
         const span = host.ledStrip.addSpan(getColor(onlineId), 2);
         monitor.watch(accountId).subscribe(online => span.enable(online));
     }
