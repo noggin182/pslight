@@ -1,7 +1,12 @@
+import { DefaultPsnClient } from 'pslight-core/psn/client';
 import readline from 'readline';
 import { PslightWebHost } from './web-host';
+import { WebTestPsnClient } from './web-test-psn-client';
 
-new PslightWebHost(8085, 108);
+const mockPsn = true;
+const psnClient = mockPsn ? new WebTestPsnClient() : new DefaultPsnClient();
+
+new PslightWebHost(8085, 108, psnClient);
 
 if (process.platform === 'win32') {
     const rl = readline.createInterface({

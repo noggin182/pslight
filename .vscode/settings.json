@@ -1,9 +1,10 @@
 {
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.fixAll": true,
-        "source.organizeImports": true
-    },
-    "eslint.alwaysShowStatus": true,
-    "files.autoSave": "onFocusChange"
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true,
+    "source.organizeImports": true
+  },
+  "eslint.alwaysShowStatus": true,
+  "files.autoSave": "onFocusChange",
+  "html.format.wrapLineLength": 160
 }
