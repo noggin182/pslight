@@ -1,6 +1,6 @@
 'use strict';
 
-const ws = new WebSocket('ws://localhost:8085/ws');
+const ws = new WebSocket(`ws://${window.location.host}/ws`);
 
 ws.onmessage = (event) => {
     if (event.data.startsWith('l:')) {
