@@ -7,7 +7,6 @@
     "start": "set NODE_PATH=dist&& node ./dist/rpi/index.js",
     "prestart:web": "tsc --build tsconfig.web.json",
     "start:web": "set NODE_PATH=dist&& node ./dist/web/index.js",
-    "postinstall": "node ./scripts/install-rpi-dependencies.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -34,8 +33,8 @@
     "typescript": "^4.3.4",
     "ws": "^7.5.0"
   },
-  "rpi-dependencies": {
-    "rpi-ws281x-native": "1.0.3"
+  "optionalDependencies": {
+    "rpi-ws281x": "github:noggin182/rpi-ws281x"
   },
   "devDependencies": {
     "@types/finalhandler": "^1.1.1",
