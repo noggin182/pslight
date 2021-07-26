@@ -8,11 +8,24 @@
       "type": "pwa-node",
       "request": "launch",
       "outputCapture": "std",
-      "name": "Launch Web Version",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start:web"],
+      "name": "Launch (Mocked PSN)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--nolazy",
+        "-r",
+        "ts-node/register", // "ts-node/register/transpile-only",
+        "-r",
+        "./src/mock-psn-client.ts"
+      ],
+      "args": ["src/pslight.ts"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
 
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "cwd": "${workspaceRoot}",
+      "internalConsoleOptions": "openOnSessionStart",
+
       "skipFiles": [
         "<node_internals>/**",
         "${workspaceFolder}/**/node_modules/**"

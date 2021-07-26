@@ -20,6 +20,13 @@ const EXCHANGE_NPSSO = 'https://ca.account.sony.com/api/authz/v3/oauth/authorize
 export interface PsnClient {
     getFriends(): Promise<{ [onlineId: string]: string }>;
     getPresences(accountIds: string[]): Promise<{ [accountId: string]: boolean; }>;
+    setPresence?(accountIds: string, presence: boolean): void;
+}
+
+export class PsnClientFactory {
+    static create: () => PsnClient = () => {
+        return new DefaultPsnClient();
+    }
 }
 
 export class DefaultPsnClient implements PsnClient {
