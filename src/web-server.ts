@@ -5,6 +5,7 @@ import WebSocket from 'ws';
 import { LedManager } from './led-manager';
 import { PsPowerMonitor } from './ps-power-monitor';
 import { PsnClient } from './psn/client';
+import { toNumber } from './utils/color';
 
 const WWWROOT = __dirname + '/wwwroot';
 type RequestHandlerWithError = (request: http.IncomingMessage, response: http.ServerResponse, next: (err?: unknown) => void) => void;
@@ -16,7 +17,7 @@ export function startWebServer(port: number, ledManager: LedManager, psnClient: 
     const wss = new WebSocket.Server({ server });
     wss.on('connection', async (ws) => {
         ws.send(`p:${+psPowerMonitor.currentStatus}`);
-        const ledSubscription = ledManager.ledValues$.subscribe((leds) => ws.send('l:' + leds.map(l => l.toString(16).padStart(6, '0')).join('-')));
+        const ledSubscription = ledManager.ledValues$.subscribe((leds) => ws.send('l:' + leds.map(l => toNumber(l).toString(16).padStart(6, '0')).join('-')));
         ws.on('close', () => ledSubscription.unsubscribe());
         if (psnClient.setPresence) {
             ws.send('m:1');

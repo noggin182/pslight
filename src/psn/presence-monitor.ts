@@ -1,5 +1,6 @@
 import { Observable, Subject } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
+import { Constants } from '../constants';
 import { PsnClient } from './client';
 
 export class PresenceMonitor {
@@ -46,7 +47,7 @@ export class PresenceMonitor {
     }
 
     private waitBeforeNextPoll() {
-        const delay = 1000; // TODO: dial this back after a while to avoid 409s
+        const delay = Constants.psn.fastPoll; // TODO: dial this back after a while to avoid 409s
         return new Promise(cb => setTimeout(cb, delay));
     }
 }

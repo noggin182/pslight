@@ -1,5 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
+import { Color, Colors } from './utils/color';
 
 export interface LedSpan {
     enable(enabled: boolean): void;
@@ -10,9 +11,9 @@ export class LedManager {
         process.on('uncaughtException', () => {
             // We are likely running headless, so if there is an error try and indicate this using the led strip
             try {
-                const values = new Array(length).fill(0);
-                values[0] = 0xFF0000;
-                values[values.length - 1] = 0xFF0000;
+                const values: Color[] = new Array(length).fill(Colors.BLACK);
+                values[0] = Colors.RED;
+                values[values.length - 1] = Colors.RED;
                 this.ledValues$.next(values);
             } catch (e) {
                 // If we can't show an error using the led strip, then there isn't much we can do
@@ -20,17 +21,17 @@ export class LedManager {
         });
     }
 
-    ledValues$ = new BehaviorSubject<number[]>(new Array(this.length).fill(0));
+    ledValues$ = new BehaviorSubject<Color[]>(new Array(this.length).fill(Colors.BLACK));
 
     private animator: LedStripAnimator = new DefaultLedStripAnimator(this.length, (leds) => this.ledValues$.next(leds));
 
     private readonly spans: {
-        color: number;
+        color: Color;
         group: number;
         active: boolean;
     }[] = [];
 
-    addSpan(color: number, group: number): LedSpan {
+    addSpan(color: Color, group: number): LedSpan {
         const index = this.spans.length;
         this.spans.push({
             color,
@@ -57,12 +58,12 @@ export class LedManager {
         const effectiveColors = activeSpans.filter(s => s.group === maxGroup).map(s => s.color);
         return {
             group: maxGroup,
-            colors: effectiveColors.length ? effectiveColors : [0]
+            colors: effectiveColors.length ? effectiveColors : [Colors.BLACK]
         };
     }
 
     async shutdown(): Promise<void> {
         this.setSpanState = () => { /* ignore any changes to spans from now on */ };
-        await this.animator.transition(this.createSnapshot(), { group: -Infinity, colors: [0] });
+        await this.animator.transition(this.createSnapshot(), { group: -Infinity, colors: [Colors.BLACK] });
     }
 }

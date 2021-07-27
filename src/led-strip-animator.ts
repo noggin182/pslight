@@ -1,32 +1,28 @@
 import { performance } from 'perf_hooks';
+import { Constants } from './constants';
+import { Color, Colors, mapComponent } from './utils/color';
 
 const ELLIPSES = 0.0002;
 
-const TRANSITION_DURATION = 1000;
-const TRANSITION_INTERVAL = 0;
-
 export interface ActiveSpansSnapshot {
     group: number;
-    colors: number[];
+    colors: Color[];
 }
 
 export interface LedStripAnimator {
     transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): Promise<void>;
 }
 
-type Color = readonly [number, number, number];
-const BLACK: Color = [0, 0, 0];
-
 export class DefaultLedStripAnimator implements LedStripAnimator {
-    constructor(private readonly length: number, private readonly write: (colors: number[]) => void) {
+    constructor(private readonly length: number, private readonly write: (colors: Color[]) => void) {
     }
 
-    private currentValues: Color[] = new Array(this.length).fill(BLACK);
+    private currentValues: Color[] = new Array(this.length).fill(Colors.BLACK);
 
     private currentTransition: { resolve: () => void, timer: NodeJS.Timer } | null = null;
 
     private send() {
-        this.write(this.currentValues.map(([r, g, b]) => (r << 16) | (g << 8) | (b)));
+        this.write(this.currentValues);
     }
 
     transition(from: ActiveSpansSnapshot, to: ActiveSpansSnapshot): Promise<void> {
@@ -61,7 +57,7 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
             const start = performance.now();
 
             const nextFrame = () => {
-                const time = (performance.now() - start) / TRANSITION_DURATION;
+                const time = (performance.now() - start) / Constants.transitionDuration;
 
                 if (time >= 1) {
                     this.currentValues = next;
@@ -88,7 +84,7 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
             };
 
             this.currentTransition = {
-                timer: global.setInterval(nextFrame, TRANSITION_INTERVAL),
+                timer: global.setInterval(nextFrame, 0),
                 resolve
             };
         });
@@ -96,27 +92,14 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
 
     private interpolate(from: Color, to: Color, time: number, position: number): Color {
         const delta = Math.max(0, Math.min((time - (position / 2)) * 2, 1));
-        const component = (f: number, t: number) => f + (t - f) * delta;
-        return [
-            component(from[0], to[0]),
-            component(from[1], to[1]),
-            component(from[2], to[2])
-        ];
+        return mapComponent(from, (fc, i) => fc + (to[i] - fc) * delta);
     }
 
-    private toRgb(color: number): Color {
-        return [
-            (color >> 16) & 0xFF,
-            (color >> 8) & 0xFF,
-            (color >> 0) & 0xFF
-        ];
-    }
-
-    private spreadColors(spanColors: number[]): Color[] {
+    private spreadColors(spanColors: Color[]): Color[] {
         const spanLength = this.length / spanColors.length;
         const spans = spanColors.map(color => ({
             remaining: spanLength,
-            color: this.toRgb(color)
+            color
         }));
         const colors: Color[] = new Array(this.length);
         for (let i = 0; i < this.length; i++) {
@@ -144,7 +127,7 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
                     c[0] + p.color[0] * p.size / total,
                     c[1] + p.color[1] * p.size / total,
                     c[2] + p.color[2] * p.size / total,
-                ], BLACK);
+                ], Colors.BLACK);
             }
         }
         return colors;

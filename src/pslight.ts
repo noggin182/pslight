@@ -1,14 +1,15 @@
 import readline from 'readline';
-import { getPlayerColor } from './colors';
+import { Constants } from './constants';
 import { LedManager } from './led-manager';
 import { PsPowerMonitor } from './ps-power-monitor';
 import { PsnClientFactory } from './psn/client';
 import { PresenceMonitor } from './psn/presence-monitor';
 import { attachWs281x } from './rpi/led-strip';
+import { fromNumber, getPlayerColor } from './utils/color';
 import { startWebServer } from './web-server';
 
 const main = async () => {
-    const ledManager = new LedManager(108);
+    const ledManager = new LedManager(Constants.numberOfLeds);
     await attachWs281x(ledManager);
 
     const psnClient = PsnClientFactory.create();
@@ -25,8 +26,8 @@ const main = async () => {
         monitor.watch(accountId).subscribe(online => span.enable(online));
     }
 
-    const powerOnSpan = ledManager.addSpan(0xFFFFFF, 1);
-    ledManager.addSpan(0x402000, 0).enable(true);
+    const powerOnSpan = ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1);
+    ledManager.addSpan(fromNumber(Constants.colors.standby), 0).enable(true);
 
     const psPowerMonitor = new PsPowerMonitor();
 
@@ -45,7 +46,7 @@ const main = async () => {
             .on('SIGINT', () => process.emit('SIGINT', 'SIGINT'));
     }
 
-    startWebServer(8085, ledManager, psnClient, psPowerMonitor);
+    startWebServer(Constants.port, ledManager, psnClient, psPowerMonitor);
 };
 
 main();

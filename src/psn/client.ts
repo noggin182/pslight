@@ -1,21 +1,8 @@
 import axios from 'axios';
 import { readFileSync } from 'fs';
 import queryString from 'querystring';
+import { Constants } from '../constants';
 import { PsnBasicPresences, PsnFriends, Token } from './models';
-
-const CLIENT_AUTHORIZATION = 'YWM4ZDE2MWEtZDk2Ni00NzI4LWIwZWEtZmZlYzIyZjY5ZWRjOkRFaXhFcVhYQ2RYZHdqMHY=';
-const TOKEN_GRACE = 60_000; // reduce the lifetime of all tokens by one minute
-const PSN_API = 'https://m.np.playstation.net/api/userProfile/v1/internal/';
-
-const EXCHANGE_NPSSO = 'https://ca.account.sony.com/api/authz/v3/oauth/authorize?' +
-    queryString.encode({
-        access_type: 'offline',
-        client_id: 'ac8d161a-d966-4728-b0ea-ffec22f69edc',
-        redirect_uri: 'com.playstation.PlayStationApp://redirect',
-        response_type: 'code',
-        scope: 'psn:mobile.v1 psn:clientapp',
-    });
-
 
 export interface PsnClient {
     getFriends(): Promise<{ [onlineId: string]: string }>;
@@ -49,7 +36,7 @@ export class DefaultPsnClient implements PsnClient {
     private async getNewToken(data: { [key: string]: string }) {
         this.token = (await axios.post<Token>('https://ca.account.sony.com/api/authz/v3/oauth/token', queryString.stringify(data), {
             headers: {
-                Authorization: `Basic ${CLIENT_AUTHORIZATION}`,
+                Authorization: `Basic ${Constants.psn.clientAuth}`,
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
         })).data;
@@ -59,7 +46,7 @@ export class DefaultPsnClient implements PsnClient {
         }
 
         const adjustExpirary = (expirary: number) =>
-            expirary * 1000 + Date.now() - TOKEN_GRACE;
+            expirary * 1000 + Date.now() - Constants.psn.tokenGrace;
 
         this.token.expires_in = adjustExpirary(this.token.expires_in);
         this.token.refresh_token_expires_in = adjustExpirary(
@@ -73,7 +60,7 @@ export class DefaultPsnClient implements PsnClient {
     ) {
         if (!this.token || this.token.refresh_token_expires_in <= Date.now()) {
             let code: string | undefined = undefined;
-            await axios.get(EXCHANGE_NPSSO, {
+            await axios.get(Constants.psn.npssoExchange, {
                 headers: {
                     Cookie: `npsso=${this.npsso}`,
                 },
@@ -125,7 +112,7 @@ export class DefaultPsnClient implements PsnClient {
                     .join('&');
         }
 
-        const response = await axios.get<T>(`${PSN_API}${path}`, {
+        const response = await axios.get<T>(`${Constants.psn.api}${path}`, {
             headers: {
                 Authorization: `Bearer ${this.token?.access_token}`,
             },
