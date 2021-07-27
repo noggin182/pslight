@@ -1,7 +1,6 @@
 import isRpi from 'detect-rpi';
-import { Constants } from '../constants';
 import { LedManager } from '../led-manager';
-import { applyGammaCorection, toNumber } from '../utils/color';
+import { toNumber } from '../utils/color';
 
 export async function attachWs281x(ledManager: LedManager): Promise<void> {
     if (isRpi()) {
@@ -12,6 +11,6 @@ export async function attachWs281x(ledManager: LedManager): Promise<void> {
             stripType: 'grb'
         });
 
-        ledManager.ledValues$.subscribe(leds => ws281x.render(new Uint32Array(leds.map(l => toNumber(applyGammaCorection(l, Constants.gammaCorrection))))));
+        ledManager.ledValues$.subscribe(leds => ws281x.render(new Uint32Array(leds.map(toNumber))));
     }
 }

@@ -14,7 +14,6 @@ export const Constants = {
             0xD84315
         ]
     },
-    gammaCorrection: 1.5,
     transitionDuration: 1000,
 
     psn: {

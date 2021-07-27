@@ -12,10 +12,6 @@ export function mapComponent([r, g, b]: Color, callback: (component: number, ind
     return [callback(r, 0), callback(g, 1), callback(b, 2)];
 }
 
-export function applyGammaCorection(color: Color, factor: number): Color {
-    return mapComponent(color, c => c ** factor);
-}
-
 export function toNumber(color: Color): number {
     return mapComponent(color, c => Math.round(c * 255)).reduce((p, c) => p << 8 | c);
 }
