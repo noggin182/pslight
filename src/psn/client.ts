@@ -19,7 +19,7 @@ export class PsnClientFactory {
 export class DefaultPsnClient implements PsnClient {
     constructor() {
         try {
-            const data = readFileSync(`${__dirname}/../../../psn.json`);
+            const data = readFileSync(`${__dirname}/../../psn.json`);
             this.npsso = JSON.parse(data.toString()).npsso;
         } catch (e) {
             throw new Error('Error reading NPSSO from psn.json');
