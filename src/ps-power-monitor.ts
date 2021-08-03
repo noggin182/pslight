@@ -1,11 +1,15 @@
-import isRpi from 'detect-rpi';
+import { Gpio } from 'onoff';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 export class PsPowerMonitor {
-    constructor() {
-        if (isRpi()) {
-            // TODO: hook up to GPIO
+    constructor(gpio: Gpio | undefined) {
+        if (gpio) {
             this.isMocked = false;
+            gpio.watch((err, value) => {
+                if (!err) {
+                    this.powerSubject$.next(value == Gpio.HIGH);
+                }
+            });
         } else {
             this.isMocked = true;
         }

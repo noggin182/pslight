@@ -4,6 +4,9 @@ export const Constants = {
     port: 8085,
     numberOfLeds: 108,
 
+    ledGpio: 12,
+    powerGpio: 25,
+
     colors: {
         standby: 0x402000,
         powerOn: 0xFFFFFF,

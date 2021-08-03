@@ -1,3 +1,4 @@
+import { Gpio } from 'onoff';
 import readline from 'readline';
 import { Constants } from './constants';
 import { LedManager } from './led-manager';
@@ -9,8 +10,13 @@ import { fromNumber, getPlayerColor } from './utils/color';
 import { startWebServer } from './web-server';
 
 const main = async () => {
+    let powerGpio: Gpio | undefined = undefined;
     const ledManager = new LedManager(Constants.numberOfLeds);
-    await attachWs281x(ledManager);
+
+    if (Gpio.accessible) {
+        await attachWs281x(ledManager);
+        powerGpio = new Gpio(Constants.powerGpio, 'in', 'both');
+    }
 
     const psnClient = PsnClientFactory.create();
     const friendIdMap = await psnClient.getFriends();
@@ -29,7 +35,7 @@ const main = async () => {
     const powerOnSpan = ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1);
     ledManager.addSpan(fromNumber(Constants.colors.standby), 0).enable(true);
 
-    const psPowerMonitor = new PsPowerMonitor();
+    const psPowerMonitor = new PsPowerMonitor(powerGpio);
 
     psPowerMonitor.powerStatus$.subscribe(power => {
         powerOnSpan.enable(power);
