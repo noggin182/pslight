@@ -13,10 +13,31 @@
       "runtimeArgs": [
         "--nolazy",
         "-r",
-        "ts-node/register", // "ts-node/register/transpile-only",
+        "ts-node/register",
         "-r",
         "./src/mock-psn-client.ts"
       ],
+      "args": ["src/pslight.ts"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+
+      "cwd": "${workspaceRoot}",
+      "internalConsoleOptions": "openOnSessionStart",
+
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/**/node_modules/**"
+      ]
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "outputCapture": "std",
+      "name": "Launch (Real PSN)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
       "args": ["src/pslight.ts"],
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
