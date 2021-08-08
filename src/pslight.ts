@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import { Gpio } from 'onoff';
 import readline from 'readline';
 import { distinctUntilChanged } from 'rxjs';
@@ -11,6 +12,7 @@ import { fromNumber, getPlayerColor } from './utils/color';
 import { startWebServer } from './web-server';
 
 const main = async () => {
+    dotenv.config();
     let powerGpio: Gpio | undefined = undefined;
     const ledManager = new LedManager(Constants.numberOfLeds);
 
