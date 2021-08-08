@@ -1,5 +1,6 @@
 import { Gpio } from 'onoff';
 import readline from 'readline';
+import { distinctUntilChanged } from 'rxjs';
 import { Constants } from './constants';
 import { LedManager } from './led-manager';
 import { PsPowerMonitor } from './ps-power-monitor';
@@ -37,7 +38,7 @@ const main = async () => {
 
     const psPowerMonitor = new PsPowerMonitor(powerGpio);
 
-    psPowerMonitor.powerStatus$.subscribe(power => {
+    psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
         powerOnSpan.enable(power);
         monitor.enable(power);
     });

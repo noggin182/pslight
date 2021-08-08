@@ -1,17 +1,20 @@
-import { Gpio } from 'onoff';
+import { Gpio, ValueCallback } from 'onoff';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 export class PsPowerMonitor {
     constructor(gpio: Gpio | undefined) {
         if (gpio) {
             this.isMocked = false;
-            gpio.watch((err, value) => {
-                if (!err) {
-                    this.powerSubject$.next(value == Gpio.HIGH);
-                }
-            });
+            gpio.watch(this.handleGpioChange);
+            gpio.read(this.handleGpioChange);
         } else {
             this.isMocked = true;
+        }
+    }
+
+    private handleGpioChange: ValueCallback = (err, value) => {
+        if (!err) {
+            this.powerSubject$.next(value == Gpio.HIGH);
         }
     }
 
