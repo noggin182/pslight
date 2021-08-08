@@ -27,6 +27,7 @@ const main = async () => {
         ? prefered.split(',').map(onlineId => [onlineId, friendIdMap[onlineId]]).filter(kvp => kvp[1])
         : Object.entries(friendIdMap).slice(0, 4);
 
+    console.log('Monitoring for friends: ' + friendAccounts.map(f => f[0]).join(', '));
     const monitor = new PresenceMonitor(psnClient);
     for (const [onlineId, accountId] of friendAccounts) {
         const span = ledManager.addSpan(getPlayerColor(onlineId), 2);
