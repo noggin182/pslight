@@ -30,13 +30,32 @@ export class PresenceMonitor {
     private startPolling() {
         let active = true;
         const poll = async () => {
+            const start = Date.now();
+            let fastPoll = true;
+
             while (active) {
-                const presences = await this.psnClient.getPresences(Object.keys(this.accounts));
-                if (active) {
-                    for (const [accountId, presence] of Object.entries(presences)) {
-                        this.accounts[accountId]?.next(presence);
+                if (fastPoll && (Date.now() - start) > Constants.psn.fastPollDuration) {
+                    fastPoll = false;
+                }
+                try {
+                    const presences = await this.psnClient.getPresences(Object.keys(this.accounts));
+                    if (active) {
+                        for (const [accountId, presence] of Object.entries(presences)) {
+                            this.accounts[accountId]?.next(presence);
+                            if (presence) {
+                                fastPoll = false;
+                            }
+                        }
+                        await this.delay(fastPoll ? Constants.psn.fastPoll : Constants.psn.slowPoll);
                     }
-                    await this.waitBeforeNextPoll();
+                } catch (err) {
+                    if (err?.response?.status === 429) {
+                        // We've been told off for hitting the PSN too frequent
+                        // Tests show we should be ok again after 10 minutes, so just poll very slowly for now
+                        await this.delay(Constants.psn.safePoll);
+                    } else {
+                        throw err;
+                    }
                 }
             }
         };
@@ -46,8 +65,7 @@ export class PresenceMonitor {
         };
     }
 
-    private waitBeforeNextPoll() {
-        const delay = Constants.psn.fastPoll; // TODO: dial this back after a while to avoid 409s
+    private delay(delay: number) {
         return new Promise(cb => setTimeout(cb, delay));
     }
 }

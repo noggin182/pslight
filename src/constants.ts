@@ -32,7 +32,9 @@ export const Constants = {
                 response_type: 'code',
                 scope: 'psn:mobile.v1 psn:clientapp',
             }),
-        slowPoll: 5000,
-        fastPoll: 1000
+        slowPoll: 5_000,
+        fastPoll: 1_000,
+        fastPollDuration: 120_000,
+        safePoll: 3_0000
     }
 } as const;
