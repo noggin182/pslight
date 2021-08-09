@@ -34,6 +34,11 @@ export class PresenceMonitor {
             const start = Date.now();
             let fastPoll = true;
 
+            const request = {
+                count: 0,
+                since: start
+            };
+
             while (active) {
                 if (fastPoll && (Date.now() - start) > Constants.psn.fastPollDuration) {
                     fastPoll = false;
@@ -41,6 +46,11 @@ export class PresenceMonitor {
                 try {
                     const presences = await this.psnClient.getPresences(Object.keys(this.accounts));
                     errorManager.clear(ErrorStates.PsnPolling);
+                    request.count++;
+                    if (!request.count) {
+                        console.log(`Polling PSN again after ${(Date.now() - request.since) / 1000} seconds`);
+                    }
+
                     if (active) {
                         for (const [accountId, presence] of Object.entries(presences)) {
                             this.accounts[accountId]?.next(presence);
@@ -51,6 +61,9 @@ export class PresenceMonitor {
                         await this.delay(fastPoll ? Constants.psn.fastPoll : Constants.psn.slowPoll);
                     }
                 } catch (err) {
+                    if (request.count && !errorManager.has(ErrorStates.PsnPolling)) {
+                        console.error(`Recieved ${err?.response?.status ?? 'error'} from PSN after ${request.count} request(s) in ${(Date.now() - request.since) / 1000} seconds`);
+                    }
                     errorManager.set(ErrorStates.PsnPolling);
                     if (err?.response?.status === 429) {
                         // We've been told off for hitting the PSN too frequent
@@ -59,6 +72,8 @@ export class PresenceMonitor {
                     } else {
                         throw err;
                     }
+                    request.count = -1;
+                    request.since = Date.now();
                 }
             }
         };
