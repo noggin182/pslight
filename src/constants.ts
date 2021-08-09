@@ -17,7 +17,7 @@ export const Constants = {
             0xD84315
         ]
     },
-    transitionDuration: 1000,
+    transitionDuration: 2000,
 
     psn: {
         clientAuth: 'YWM4ZDE2MWEtZDk2Ni00NzI4LWIwZWEtZmZlYzIyZjY5ZWRjOkRFaXhFcVhYQ2RYZHdqMHY=',

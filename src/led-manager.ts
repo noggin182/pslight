@@ -1,4 +1,6 @@
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
+import { Constants } from './constants';
+import { errorManager } from './error-manager';
 import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
 import { Color, Colors } from './utils/color';
 
@@ -8,6 +10,31 @@ export interface LedSpan {
 
 export class LedManager {
     constructor(public readonly length: number) {
+        // When we have an error, pulse the ends of the LED strip red
+        const errorSpans = [
+            this.addSpan(Colors.RED, Infinity),
+            this.addSpan(Colors.BLACK, Infinity),
+            this.addSpan(Colors.RED, Infinity)
+        ];
+
+        let errorDisplayTimeout: NodeJS.Timeout | undefined;
+
+        errorManager.hasAny$.pipe(distinctUntilChanged()).subscribe(hasErrors => {
+            if (hasErrors) {
+                errorSpans.forEach(es => es.enable(hasErrors));
+                let pulsed = true;
+                errorDisplayTimeout = setInterval(() => {
+                    pulsed = !pulsed;
+                    errorSpans.forEach(es => es.enable(pulsed));
+                }, Constants.transitionDuration * 2);
+            } else {
+                if (errorDisplayTimeout) {
+                    global.clearInterval(errorDisplayTimeout);
+                }
+                errorSpans.forEach(es => es.enable(false));
+            }
+        });
+
         process.on('uncaughtException', () => {
             // We are likely running headless, so if there is an error try and indicate this using the led strip
             try {
