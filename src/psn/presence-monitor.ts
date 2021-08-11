@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Observable, Subject } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 import { Constants } from '../constants';
@@ -31,55 +32,37 @@ export class PresenceMonitor {
     private startPolling() {
         let active = true;
         const poll = async () => {
-            const start = Date.now();
-            let fastPoll = true;
-
-            const request = {
-                count: 0,
-                since: start
-            };
-
             while (active) {
-                if (fastPoll && (Date.now() - start) > Constants.psn.fastPollDuration) {
-                    fastPoll = false;
-                }
+                await this.delay(Constants.psn.pollInterval);
                 try {
                     const presences = await this.psnClient.getPresences(Object.keys(this.accounts));
-                    errorManager.clear(ErrorStates.PsnPolling);
-                    request.count++;
-                    if (!request.count) {
-                        console.log(`Polling PSN again after ${(Date.now() - request.since) / 1000} seconds`);
-                    }
-
                     if (active) {
                         for (const [accountId, presence] of Object.entries(presences)) {
                             this.accounts[accountId]?.next(presence);
-                            if (presence) {
-                                fastPoll = false;
-                            }
                         }
-                        await this.delay(fastPoll ? Constants.psn.fastPoll : Constants.psn.slowPoll);
+                        errorManager.clear(ErrorStates.PsnPolling);
                     }
-                } catch (err) {
-                    if (request.count && !errorManager.has(ErrorStates.PsnPolling)) {
-                        console.error(`Recieved ${err?.response?.status ?? 'error'} from PSN after ${request.count} request(s) in ${(Date.now() - request.since) / 1000} seconds`);
-                    }
+                } catch (error) {
                     errorManager.set(ErrorStates.PsnPolling);
-                    if (err?.response?.status === 429) {
-                        // We've been told off for hitting the PSN too frequent
-                        // Tests show we should be ok again after 10 minutes, so just poll very slowly for now
-                        await this.delay(Constants.psn.safePoll);
-                    } else {
-                        throw err;
+                    console.error(`PSN poll failed! [${new Date().toISOString().replace('T', ' ').substr(0, 19)}] ${error.message}`);
+                    if (axios.isAxiosError(error)) {
+                        console.error(`> ${error.request.method} ${error.request.path}`);
+                        if (error.response) {
+                            console.error(`< ${error.response?.status} ${error.response?.statusText}`);
+                            console.error(error.response.data);
+                        }
+                        console.error();
                     }
-                    request.count = -1;
-                    request.since = Date.now();
+                    await this.delay(Constants.psn.stallTime);
                 }
             }
         };
         poll();
         return {
-            cancel: () => active = false
+            cancel: () => {
+                active = false;
+                errorManager.clear(ErrorStates.PsnPolling);
+            }
         };
     }
 

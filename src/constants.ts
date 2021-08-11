@@ -1,5 +1,8 @@
 import queryString from 'querystring';
 
+const PSN_LIMIT_COUNT = 150;
+const PSN_LIMIT_TIMEFRAME = 900_000;
+
 export const Constants = {
     port: 8085,
     numberOfLeds: 108,
@@ -32,9 +35,7 @@ export const Constants = {
                 response_type: 'code',
                 scope: 'psn:mobile.v1 psn:clientapp',
             }),
-        slowPoll: 5_000,
-        fastPoll: 1_000,
-        fastPollDuration: 120_000,
-        safePoll: 3_0000
+        pollInterval: PSN_LIMIT_TIMEFRAME / PSN_LIMIT_COUNT,
+        stallTime: 30_000
     }
 } as const;
