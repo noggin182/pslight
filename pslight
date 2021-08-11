@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo npx ts-node --transpile-only ./src/pslight.ts
