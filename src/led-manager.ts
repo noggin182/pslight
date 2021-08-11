@@ -1,5 +1,4 @@
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
-import { Constants } from './constants';
 import { errorManager } from './error-manager';
 import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
 import { Color, Colors } from './utils/color';
@@ -14,6 +13,8 @@ export class LedManager {
         const errorSpans = [
             this.addSpan(Colors.RED, Infinity),
             this.addSpan(Colors.BLACK, Infinity),
+            this.addSpan(Colors.BLACK, Infinity),
+            this.addSpan(Colors.BLACK, Infinity),
             this.addSpan(Colors.RED, Infinity)
         ];
 
@@ -26,7 +27,7 @@ export class LedManager {
                 errorDisplayTimeout = setInterval(() => {
                     pulsed = !pulsed;
                     errorSpans.forEach(es => es.enable(pulsed));
-                }, Constants.transitionDuration * 2);
+                }, 1000);
             } else {
                 if (errorDisplayTimeout) {
                     global.clearInterval(errorDisplayTimeout);

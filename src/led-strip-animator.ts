@@ -31,6 +31,8 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
             global.clearInterval(this.currentTransition.timer);
         }
 
+        const duration = to.group === Infinity || from.group === Infinity ? 250 : Constants.transitionDuration;
+
         return new Promise(resolve => {
             const previous = [...this.currentValues];
 
@@ -57,7 +59,7 @@ export class DefaultLedStripAnimator implements LedStripAnimator {
             const start = performance.now();
 
             const nextFrame = () => {
-                const time = (performance.now() - start) / Constants.transitionDuration;
+                const time = (performance.now() - start) / duration;
 
                 if (time >= 1) {
                     this.currentValues = next;
