@@ -12,7 +12,7 @@ export const Constants = {
 
     colors: {
         standby: 0x402000,
-        powerOn: 0xFFFFFF,
+        powerOn: 0xA0A0A0,
         players: [
             0x1565C0,
             0x2E7D32,
