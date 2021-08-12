@@ -6,6 +6,7 @@ const PSN_LIMIT_TIMEFRAME = 900_000;
 export const Constants = {
     port: 8085,
     numberOfLeds: 108,
+    skipLeds: 1,
 
     ledGpio: 12,
     powerGpio: 25,
@@ -14,9 +15,9 @@ export const Constants = {
         standby: 0x402000,
         powerOn: 0xA0A0A0,
         players: [
-            0x1565C0,
-            0x2E7D32,
-            0x4527A0,
+            0x4070ff,
+            0x40ff70,
+            0xff40ff,
             0xD84315
         ]
     },
