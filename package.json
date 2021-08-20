@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "prestart": "tsc --build tsconfig.rpi.json",
-    "start": "set NODE_PATH=dist&& node ./dist/rpi/index.js",
-    "prestart:web": "tsc --build tsconfig.web.json",
-    "start:web": "set NODE_PATH=dist&& node ./dist/web/index.js",
+    "start": "ts-node --transpile-only ./src/pslight.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
