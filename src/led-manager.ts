@@ -2,9 +2,16 @@ import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
 import { errorManager } from './error-manager';
 import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
 import { Color, Colors } from './utils/color';
+import { WritableSubject } from './utils/writable-subject';
 
 export interface LedSpan {
     enable(enabled: boolean): void;
+}
+
+export const enum Brightness {
+    Off,
+    Dim,
+    Bright
 }
 
 export class LedManager {
@@ -50,6 +57,7 @@ export class LedManager {
     }
 
     ledValues$ = new BehaviorSubject<Color[]>(new Array(this.length).fill(Colors.BLACK));
+    brightness$ = new WritableSubject<Brightness>(Brightness.Bright);
 
     private animator: LedStripAnimator = new DefaultLedStripAnimator(this.length, (leds) => this.ledValues$.next(leds));
 
@@ -93,5 +101,9 @@ export class LedManager {
     async shutdown(): Promise<void> {
         this.setSpanState = () => { /* ignore any changes to spans from now on */ };
         await this.animator.transition(this.createSnapshot(), { group: -Infinity, colors: [Colors.BLACK] });
+    }
+
+    setBrightness = (brightness: Brightness): void => {
+        // todo
     }
 }
