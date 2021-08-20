@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { Gpio } from 'onoff';
 import { argv } from 'process';
 import readline from 'readline';
-import { distinctUntilChanged, withLatestFrom } from 'rxjs';
+import { of } from 'rxjs';
 import { Constants } from './constants';
 import { LedManager } from './led-manager';
 import { PsPowerMonitor } from './ps-power-monitor';
@@ -10,6 +10,7 @@ import { DefaultPresenceMonitor } from './psn/presence-monitor';
 import { MockedPresenceMonitor } from './psn/presence-monitor.mocked';
 import { attachWs281x } from './rpi/led-strip';
 import { fromNumber, getPlayerColor } from './utils/color';
+import { onlyIf } from './utils/utils';
 import { WebServer } from './web-server';
 
 const main = async () => {
@@ -35,21 +36,16 @@ const main = async () => {
 
     const psPowerMonitor = new PsPowerMonitor(powerGpio);
 
-    const monitor = mockedPresences ? new MockedPresenceMonitor() : await DefaultPresenceMonitor.create();
-    for (const [onlineId, subject$] of Object.entries(monitor.profilePresence$map)) {
-        const span = ledManager.addSpan(getPlayerColor(onlineId), 2);
-        subject$
-            .pipe(withLatestFrom(psPowerMonitor.powerStatus$))
-            .subscribe(([profileOnline, psOnline]) => span.enable(profileOnline && psOnline));
+    const monitor = mockedPresences ? new MockedPresenceMonitor() : await DefaultPresenceMonitor.create(psPowerMonitor);
+    for (const [onlineId, online$] of Object.entries(monitor.profilePresence$map)) {
+        ledManager.addSpan(
+            getPlayerColor(onlineId),
+            2,
+            online$.pipe(onlyIf(psPowerMonitor.powerStatus$)));
     }
 
-    const powerOnSpan = ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1);
-    ledManager.addSpan(fromNumber(Constants.colors.standby), 0).enable(true);
-
-    psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
-        powerOnSpan.enable(power);
-        monitor.enable(power);
-    });
+    ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1, psPowerMonitor.powerStatus$);
+    ledManager.addSpan(fromNumber(Constants.colors.standby), 0, of(true));
 
     process.on('SIGINT', () => {
         // turn off the leds and then exit the process

@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, Observable } from 'rxjs';
 import { Constants } from '../constants';
 import { errorManager, ErrorStates } from '../error-manager';
+import { PsPowerMonitor } from '../ps-power-monitor';
 import { PsnClient } from './client';
 
 export interface PresenceMonitor {
-    enable(enable: boolean): void;
     readonly profilePresence$map: { readonly [onlineId: string]: Observable<boolean> }
     readonly isMocked: boolean;
 }
@@ -13,11 +13,17 @@ export interface PresenceMonitor {
 export class DefaultPresenceMonitor implements PresenceMonitor {
     constructor(
         private readonly psnClient: PsnClient,
+        psPowerMonitor: PsPowerMonitor,
         public readonly profilePresence$map: { readonly [onlineId: string]: BehaviorSubject<boolean> },
         private readonly accountPresence$map: { readonly [accountId: string]: BehaviorSubject<boolean> }) {
+
+        psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
+            // could we replace the polling with RxJs interval+expand?
+            this.enable(power);
+        });
     }
 
-    static async create(): Promise<PresenceMonitor> {
+    static async create(psPowerMonitor: PsPowerMonitor): Promise<PresenceMonitor> {
         const psnClient = new PsnClient();
         const friendIdMap = await psnClient.getFriends();
         const prefered = process.env.PSLIGHT_FRIENDS;
@@ -30,7 +36,7 @@ export class DefaultPresenceMonitor implements PresenceMonitor {
         const accountPresence$map = Object.fromEntries(friendAccounts.map(([onlineId, accountId]) => [accountId, profilePresence$map[onlineId]]));
 
         console.log('Monitoring profiles: ' + Object.keys(profilePresence$map).join(', '));
-        return new DefaultPresenceMonitor(psnClient, profilePresence$map, accountPresence$map);
+        return new DefaultPresenceMonitor(psnClient, psPowerMonitor, profilePresence$map, accountPresence$map);
     }
 
     readonly isMocked = false;
