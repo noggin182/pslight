@@ -37,11 +37,11 @@ const main = async () => {
     const psPowerMonitor = new PsPowerMonitor(powerGpio);
 
     const monitor = mockedPresences ? new MockedPresenceMonitor() : await DefaultPresenceMonitor.create(psPowerMonitor);
-    for (const [onlineId, online$] of Object.entries(monitor.profilePresence$map)) {
+    for (const [onlineId, profile] of Object.entries(monitor.profiles)) {
         ledManager.addSpan(
             getPlayerColor(onlineId),
             2,
-            online$.pipe(onlyIf(psPowerMonitor.powerStatus$)));
+            profile.online$.pipe(onlyIf(psPowerMonitor.powerStatus$)));
     }
 
     ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1, psPowerMonitor.powerStatus$);

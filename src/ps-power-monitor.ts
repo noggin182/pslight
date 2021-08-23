@@ -1,32 +1,26 @@
 import { Gpio, ValueCallback } from 'onoff';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { WritableSubject } from './utils/writable-subject';
 
 export class PsPowerMonitor {
     constructor(gpio: Gpio | undefined) {
         if (gpio) {
             this.isMocked = false;
+            this.powerStatus$ = new BehaviorSubject<boolean>(false);
             gpio.watch(this.handleGpioChange);
             gpio.read(this.handleGpioChange);
         } else {
             this.isMocked = true;
+            this.powerStatus$ = new WritableSubject<boolean>(false);
         }
     }
 
     private handleGpioChange: ValueCallback = (err, value) => {
         if (!err) {
-            this.powerSubject$.next(value == Gpio.HIGH);
+            this.powerStatus$.next(value == Gpio.HIGH);
         }
     }
 
-    private powerSubject$ = new BehaviorSubject(false);
-    powerStatus$: Observable<boolean> = this.powerSubject$;
-    get currentStatus(): boolean { return this.powerSubject$.value; }
-    set currentStatus(status: boolean) {
-        if (!this.isMocked) {
-            throw new Error('Setting currentStatus is only supported by a mocked PsPowerMonitor');
-        }
-        this.powerSubject$.next(status);
-    }
-
+    readonly powerStatus$: BehaviorSubject<boolean>;
     readonly isMocked: boolean;
 }

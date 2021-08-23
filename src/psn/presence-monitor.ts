@@ -6,7 +6,11 @@ import { PsPowerMonitor } from '../ps-power-monitor';
 import { PsnClient } from './client';
 
 export interface PresenceMonitor {
-    readonly profilePresence$map: { readonly [onlineId: string]: Observable<boolean> }
+    readonly profiles: {
+        readonly [onlineId: string]: {
+            readonly online$: Observable<boolean>;
+        }
+    };
     readonly isMocked: boolean;
 }
 
@@ -14,7 +18,7 @@ export class DefaultPresenceMonitor implements PresenceMonitor {
     constructor(
         private readonly psnClient: PsnClient,
         psPowerMonitor: PsPowerMonitor,
-        public readonly profilePresence$map: { readonly [onlineId: string]: BehaviorSubject<boolean> },
+        public readonly profiles: { readonly [onlineId: string]: { readonly online$: Observable<boolean> } },
         private readonly accountPresence$map: { readonly [accountId: string]: BehaviorSubject<boolean> }) {
 
         psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
@@ -32,11 +36,11 @@ export class DefaultPresenceMonitor implements PresenceMonitor {
             ? prefered.split(',').map<[string, string]>(onlineId => [onlineId, friendIdMap[onlineId]]).filter(kvp => kvp[1])
             : Object.entries(friendIdMap).slice(0, 4);
 
-        const profilePresence$map = Object.fromEntries(friendAccounts.map(([onlineId]) => [onlineId, new BehaviorSubject(false)]));
-        const accountPresence$map = Object.fromEntries(friendAccounts.map(([onlineId, accountId]) => [accountId, profilePresence$map[onlineId]]));
+        const profiles = Object.fromEntries(friendAccounts.map(([onlineId]) => [onlineId, { online$: new BehaviorSubject(false) }]));
+        const accountPresence$map = Object.fromEntries(friendAccounts.map(([onlineId, accountId]) => [accountId, profiles[onlineId].online$]));
 
-        console.log('Monitoring profiles: ' + Object.keys(profilePresence$map).join(', '));
-        return new DefaultPresenceMonitor(psnClient, psPowerMonitor, profilePresence$map, accountPresence$map);
+        console.log('Monitoring profiles: ' + Object.keys(profiles).join(', '));
+        return new DefaultPresenceMonitor(psnClient, psPowerMonitor, profiles, accountPresence$map);
     }
 
     readonly isMocked = false;
