@@ -1,106 +1,152 @@
-html,
 body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background-color: #000;
-  text-align: center;
+  background-color: #1e1e1e;
+  font-family: Consolas, monaco, "Courier New", monospace;
+  font-size: 14px;
   color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
-h1 {
-  font-family: "Days One", sans-serif;
-  grid-column: 1 / span 6;
-  height: 1.2em;
-  line-height: 1.2em;
-  overflow: visible;
+:root {
+  --collapse-border: "<rect x='0' y='0' width='9' height='9' fill='red'/>";
+  --collapse-line-horz: "<rect x='0' y='2' width='5' height='1' fill='red'/>";
+  --collapse-line-vert: "<rect x='0' y='2' width='5' height='1' fill='red'/>";
 }
 
-body.disconnected h1:after {
-  content: "(Disconnected)";
-  display: block;
-  color: #c08040;
+main {
+  margin-left: 10px;
+  padding-left: 10px;
+  position: relative;
+  white-space: nowrap;
 }
 
-#lights {
-  display: flex;
-  background-color: inherit;
-  padding: 20px;
-  transition: ease-in-out 200ms filter;
+details {
+  position: relative;
 }
 
-#lights.glowing {
-  filter: blur(10px);
-}
-
-#lights span {
-  flex: 1;
-  height: 30px;
-  border-radius: 5px;
-  margin-right: 1px;
-}
-
-#controls {
-  display: flex;
-}
-
-input {
+details:before {
+  content: "";
   position: absolute;
-  height: 0;
+  left: -10px;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  border-left: 1px solid #808080;
+}
+
+details summary {
+  list-style-type: none;
+  cursor: pointer;
+}
+
+details > summary:before {
+  position: absolute;
+  left: -16px;
+  top: 2px;
+  bottom: 0;
+
+  content: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAABgSURBVChTY5STk/vPQCQAK25vb4dycYPKykoGFiibITo6GsrCBEuXLgXTTGASDTx69AjKQgVYFeMCKIpBJsJMRWbDAIpioGfBGJ0NA+Q7AwbQTYQBeNDBggcfICEGGRgAUSEbEsXKA9oAAAAASUVORK5CYII=");
+  line-height: 0;
+  box-sizing: border-box;
+  padding: 2px 1px 0 1px;
+}
+
+details > summary:hover:before,
+details > summary:focus-visible:before {
+  background-color: #ffffff4d;
+}
+
+details[open] > summary:before {
+  content: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAxSURBVChTY5CTk/tPLAYrXrp0KUGMohimGxums+JHjx5hYJyKcWE6KiaE4YqJw3L/AUEw4S7/NLCAAAAAAElFTkSuQmCC");
+}
+
+details:not([open]) summary:after {
+  content: "{ … }";
 }
 
 label {
-  font-family: "Material Icons Outlined";
-  font-size: 24px;
-  background-color: #252526;
-  color: #cccccc;
-  padding: 10px;
-  cursor: pointer;
-  user-select: none;
-  border-right: 1px solid #252526;
-  z-index: 1;
-  flex: 1 1 100%;
+  pointer-events: none;
 }
 
-label:first-of-type,
-label:last-of-type {
-  flex-basis: auto;
+label,
+details.lights > summary > label {
+  color: #9cdcf0;
 }
 
-label:first-of-type {
-  background-color: #884422;
+summary label {
+  color: #d7ba7d;
+}
+
+label:after {
+  content: ": ";
   color: white;
 }
 
-input[type="checkbox"]:focus + label {
-  text-decoration: underline;
-  color: white;
+code {
+  display: block;
+  /* margin-left: 4ch; */
 }
 
-input[type="checkbox"]:checked + label {
-  background-color: #2e7d32;
-  color: white;
+code:last-child:after {
+  content: "\0a";
 }
 
-input[type="checkbox"]:disabled + label {
-  background-image: linear-gradient(-45deg, #00000080 25%, #29292980 25%, #29292980 50%, #00000080 50%, #00000080 75%, #29292980 75%, #29292980 100%);
-  background-size: 14.14px 14.14px;
-  background-attachment: fixed;
-  color: #666;
-  cursor: default;
+li,
+u {
+  color: #b5ce9b;
+  text-decoration: none;
 }
 
-#controls.loading {
-  visibility: hidden;
+span {
+  color: #ce915b;
 }
 
-#controls[data-support-mocked-clients="false"] input[data-mocked-client] + label {
-  display: none;
+u:after,
+span:after {
+  content: "\a";
+  white-space: pre;
+}
+
+main {
+  counter-reset: indent-counter;
+}
+
+ol {
+  margin: 0;
+  padding: 0;
+  list-style-type: "- ";
+  list-style-position: outside;
+}
+
+li {
+  margin: 0;
+}
+
+details > label,
+details li,
+details details > summary > label {
+  margin-left: 4ch;
+}
+
+details details > label,
+details details li,
+details details details > summary > label {
+  margin-left: 8ch;
+}
+
+details details details > label,
+details details details li,
+details details details details > summary > label {
+  margin-left: 12ch;
+}
+
+details details details details > label,
+details details details details li,
+details details details details details > summary > label {
+  margin-left: 16ch;
+}
+
+details.lights > summary span {
+  display: inline-block;
+  height: 11px;
+  vertical-align: middle;
+  width: 108px;
 }
