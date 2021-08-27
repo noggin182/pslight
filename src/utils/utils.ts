@@ -12,7 +12,7 @@ export function isObject(value: unknown): value is Record<string, unknown> {
 export function onlyIf(other: Observable<boolean>): MonoTypeOperatorFunction<boolean> {
     return function (source: Observable<boolean>) {
         const falseNonCompleting = new Observable<boolean>(s => s.next(false));
-        return other.pipe(switchMap(enabled => enabled ? falseNonCompleting : source));
+        return other.pipe(switchMap(enabled => enabled ? source : falseNonCompleting));
     };
 }
 
@@ -74,13 +74,13 @@ export type DeepUnwrapObservable<T>
  * @param object 
  * @returns 
  */
-export function flattenAndWatch<T extends Record<string, unknown>>(object: T): Observable<DeepUnwrapObservable<T>> {
+export function flattenAndWatch<T extends Record<string, unknown>>(object: T, mapper?: (value: Record<string, unknown>) => Record<string, unknown>): Observable<DeepUnwrapObservable<T>> {
     return walk(object) as Observable<DeepUnwrapObservable<T>>;
     function walk(value: unknown): Observable<unknown> {
         if (isObservable(value)) {
             return value;
         } else if (isObject(value)) {
-            return combineThenPartial(mapObject(value, (v) => walk(v), stripDollar));
+            return combineThenPartial(mapObject(mapper ? mapper(value) : value, (v) => walk(v), stripDollar));
         } else {
             return of(value);
         }
