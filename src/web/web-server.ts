@@ -4,13 +4,14 @@ import { JSONSchema4 } from 'json-schema';
 import { hostname } from 'os';
 import path from 'path';
 import { EMPTY, first, map, of, Subject, takeUntil } from 'rxjs';
-import { LedManager } from './led-manager';
-import { PsPowerMonitor } from './ps-power-monitor';
-import { PresenceMonitor } from './psn/presence-monitor';
-import { toNumber } from './utils/color';
-import { deepPick, DeepUnwrapObservable, flattenAndWatch, isObject, stripDollar } from './utils/utils';
-import { WritableSubject } from './utils/writable-subject';
-import { Schema, schema } from './web/schema';
+import { LedManager } from '../led-manager';
+import { PsPowerMonitor } from '../ps-power-monitor';
+import { PresenceMonitor } from '../psn/presence-monitor';
+import { toNumber } from '../utils/color';
+import { deepPick, flattenAndWatch, isObject, stripDollar } from '../utils/utils';
+import { WritableSubject } from '../utils/writable-subject';
+import { Schema, schema } from './schema';
+import './schema.checks';
 
 export class WebServer {
     constructor(port: number,
@@ -23,14 +24,6 @@ export class WebServer {
         app.use(express.json());
 
         this.publishSchema(app, schema, ['pslight'], { pslight: this.resources });
-
-
-        // these lines check that our schema(and validation) match our actual data structure at transpile time
-        // is there a better way to do this ?
-        let r1: DeepUnwrapObservable<WebServer['resources']> = {} as any;
-        const r: Schema = r1;
-
-        r1 = r;
 
         app.use((error: unknown, _: Request, res: Response, next: NextFunction) => {
             if (error instanceof ValidationError) {

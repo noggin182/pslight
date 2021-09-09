@@ -11,7 +11,7 @@ import { MockedPresenceMonitor } from './psn/presence-monitor.mocked';
 import { attachWs281x } from './rpi/led-strip';
 import { fromNumber, getPlayerColor } from './utils/color';
 import { onlyIf } from './utils/utils';
-import { WebServer } from './web-server';
+import { WebServer } from './web/web-server';
 
 const main = async () => {
     dotenv.config();
