@@ -1,15 +1,50 @@
 import axios from 'axios';
-import { Observable, Subject } from 'rxjs';
-import { distinctUntilChanged } from 'rxjs/operators';
+import { BehaviorSubject, distinctUntilChanged, Observable } from 'rxjs';
 import { Constants } from '../constants';
 import { errorManager, ErrorStates } from '../error-manager';
+import { PsPowerMonitor } from '../ps-power-monitor';
 import { PsnClient } from './client';
 
-export class PresenceMonitor {
-    constructor(private readonly psnClient: PsnClient) {
+export interface PresenceMonitor {
+    readonly profiles: {
+        readonly [onlineId: string]: {
+            readonly online$: Observable<boolean>;
+        }
+    };
+    readonly isMocked: boolean;
+}
+
+export class DefaultPresenceMonitor implements PresenceMonitor {
+    constructor(
+        private readonly psnClient: PsnClient,
+        psPowerMonitor: PsPowerMonitor,
+        public readonly profiles: { readonly [onlineId: string]: { readonly online$: Observable<boolean> } },
+        private readonly accountPresence$map: { readonly [accountId: string]: BehaviorSubject<boolean> }) {
+
+        psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
+            // could we replace the polling with RxJs interval+expand?
+            this.enable(power);
+        });
     }
 
-    private readonly accounts: { [accountId: string]: Subject<boolean> } = {};
+    static async create(psPowerMonitor: PsPowerMonitor): Promise<PresenceMonitor> {
+        const psnClient = new PsnClient();
+        const friendIdMap = await psnClient.getFriends();
+        const prefered = process.env.PSLIGHT_FRIENDS;
+
+        const friendAccounts: [onlineId: string, accountId: string][] = prefered
+            ? prefered.split(',').map<[string, string]>(onlineId => [onlineId, friendIdMap[onlineId]]).filter(kvp => kvp[1])
+            : Object.entries(friendIdMap).slice(0, 4);
+
+        const profiles = Object.fromEntries(friendAccounts.map(([onlineId]) => [onlineId, { online$: new BehaviorSubject(false) }]));
+        const accountPresence$map = Object.fromEntries(friendAccounts.map(([onlineId, accountId]) => [accountId, profiles[onlineId].online$]));
+
+        console.log('Monitoring profiles: ' + Object.keys(profiles).join(', '));
+        return new DefaultPresenceMonitor(psnClient, psPowerMonitor, profiles, accountPresence$map);
+    }
+
+    readonly isMocked = false;
+
     private currentPoller: { cancel: () => void } | undefined;
 
     public enable(enable: boolean): void {
@@ -18,15 +53,10 @@ export class PresenceMonitor {
         } else if (!enable && this.currentPoller) {
             this.currentPoller.cancel();
             this.currentPoller = undefined;
-            for (const subject of Object.values(this.accounts)) {
-                subject.next(false);
+            for (const account of Object.values(this.accountPresence$map)) {
+                account.next(false);
             }
         }
-    }
-
-    public watch(accountId: string): Observable<boolean> {
-        const subject = this.accounts[accountId] ??= new Subject<boolean>();
-        return subject.pipe(distinctUntilChanged());
     }
 
     private startPolling() {
@@ -35,10 +65,10 @@ export class PresenceMonitor {
             while (active) {
                 await this.delay(Constants.psn.pollInterval);
                 try {
-                    const presences = await this.psnClient.getPresences(Object.keys(this.accounts));
+                    const presences = await this.psnClient.getPresences(Object.keys(this.accountPresence$map));
                     if (active) {
                         for (const [accountId, presence] of Object.entries(presences)) {
-                            this.accounts[accountId]?.next(presence);
+                            this.accountPresence$map[accountId]?.next(presence);
                         }
                         errorManager.clear(ErrorStates.PsnPolling);
                     }

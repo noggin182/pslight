@@ -10,14 +10,8 @@
       "outputCapture": "std",
       "name": "Launch (Mocked PSN)",
       "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "--nolazy",
-        "-r",
-        "ts-node/register",
-        "-r",
-        "./src/mock-psn-client.ts"
-      ],
-      "args": ["src/pslight.ts"],
+      "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
+      "args": ["src/pslight.ts", "-mocked-presences"],
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
         "!**/node_modules/**"

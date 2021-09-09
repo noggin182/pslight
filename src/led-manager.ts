@@ -1,55 +1,29 @@
-import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, interval, map, Observable, of, skip, switchMap } from 'rxjs';
 import { errorManager } from './error-manager';
 import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
-import { Color, Colors } from './utils/color';
-
-export interface LedSpan {
-    enable(enabled: boolean): void;
-}
+import { Color, Colors, mapComponent } from './utils/color';
+import { WritableSubject } from './utils/writable-subject';
 
 export class LedManager {
     constructor(public readonly length: number) {
         // When we have an error, pulse the ends of the LED strip red
-        const errorSpans = [
-            this.addSpan(Colors.RED, Infinity),
-            this.addSpan(Colors.BLACK, Infinity),
-            this.addSpan(Colors.BLACK, Infinity),
-            this.addSpan(Colors.BLACK, Infinity),
-            this.addSpan(Colors.RED, Infinity)
-        ];
+        const errorLights$ = errorManager.hasAny$
+            .pipe(
+                distinctUntilChanged(),
+                switchMap(hasErrors => hasErrors ? interval(1000).pipe(map(v => v % 2 == 0)) : of(false)),
+            );
 
-        let errorDisplayTimeout: NodeJS.Timeout | undefined;
+        this.addSpan(Colors.RED, Infinity, errorLights$);
+        this.addSpan(Colors.BLACK, Infinity, errorLights$);
+        this.addSpan(Colors.BLACK, Infinity, errorLights$);
+        this.addSpan(Colors.BLACK, Infinity, errorLights$);
+        this.addSpan(Colors.RED, Infinity, errorLights$);
 
-        errorManager.hasAny$.pipe(distinctUntilChanged()).subscribe(hasErrors => {
-            if (hasErrors) {
-                errorSpans.forEach(es => es.enable(hasErrors));
-                let pulsed = true;
-                errorDisplayTimeout = setInterval(() => {
-                    pulsed = !pulsed;
-                    errorSpans.forEach(es => es.enable(pulsed));
-                }, 1000);
-            } else {
-                if (errorDisplayTimeout) {
-                    global.clearInterval(errorDisplayTimeout);
-                }
-                errorSpans.forEach(es => es.enable(false));
-            }
-        });
-
-        process.on('uncaughtException', () => {
-            // We are likely running headless, so if there is an error try and indicate this using the led strip
-            try {
-                const values: Color[] = new Array(length).fill(Colors.BLACK);
-                values[0] = Colors.RED;
-                values[values.length - 1] = Colors.RED;
-                this.ledValues$.next(values);
-            } catch (e) {
-                // If we can't show an error using the led strip, then there isn't much we can do
-            }
-        });
+        this.brightness$.pipe(skip(1)).subscribe(() => this.animate());
     }
 
     ledValues$ = new BehaviorSubject<Color[]>(new Array(this.length).fill(Colors.BLACK));
+    brightness$ = new WritableSubject<number>(1);
 
     private animator: LedStripAnimator = new DefaultLedStripAnimator(this.length, (leds) => this.ledValues$.next(leds));
 
@@ -59,39 +33,45 @@ export class LedManager {
         active: boolean;
     }[] = [];
 
-    addSpan(color: Color, group: number): LedSpan {
+    addSpan(color: Color, group: number, source$: Observable<boolean>): void {
         const index = this.spans.length;
         this.spans.push({
             color,
             group,
             active: false
         });
-        return {
-            enable: (enabled) => this.setSpanState(index, enabled)
-        };
+        source$.subscribe(enabled => this.setSpanState(index, enabled));
     }
+
+    private currentSnapshot: ActiveSpansSnapshot = { group: -Infinity, colors: [Colors.BLACK] };
 
     private setSpanState(index: number, enabled: boolean) {
         const span = this.spans[index];
         if (span.active !== enabled) {
-            const oldSnapshot = this.createSnapshot();
             span.active = enabled;
-            this.animator.transition(oldSnapshot, this.createSnapshot());
+            this.animate();
         }
     }
 
-    private createSnapshot(): ActiveSpansSnapshot {
+    private animate() {
+        const oldSnapshot = this.currentSnapshot;
         const activeSpans = this.spans.filter(s => s.active);
         const maxGroup = Math.max(...activeSpans.map(s => s.group));
-        const effectiveColors = activeSpans.filter(s => s.group === maxGroup).map(s => s.color);
-        return {
+        const effectiveColors = activeSpans.filter(s => s.group === maxGroup).map(s => this.adjustColor(s.color));
+        this.currentSnapshot = {
             group: maxGroup,
             colors: effectiveColors.length ? effectiveColors : [Colors.BLACK]
         };
+        this.animator.transition(oldSnapshot, this.currentSnapshot);
+    }
+
+    private adjustColor(color: Color): Color {
+        const v = Math.min(1, Math.max(0, this.brightness$.value));
+        return mapComponent(color, c => c * v);
     }
 
     async shutdown(): Promise<void> {
         this.setSpanState = () => { /* ignore any changes to spans from now on */ };
-        await this.animator.transition(this.createSnapshot(), { group: -Infinity, colors: [Colors.BLACK] });
+        await this.animator.transition(this.currentSnapshot, { group: -Infinity, colors: [Colors.BLACK] });
     }
 }
