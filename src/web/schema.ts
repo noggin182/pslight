@@ -1,5 +1,4 @@
 import { JSONSchema4 } from 'json-schema';
-import { Brightness } from '../led-manager';
 
 const constSchema = {
     type: 'object',
@@ -17,12 +16,15 @@ const constSchema = {
         },
         brightness: {
             type: 'number',
-            enum: [Brightness.Off, Brightness.Dim, Brightness.Bright]
+            minimum: 0,
+            maximum: 1
         },
         lights: {
             type: 'array',
             items: {
-                type: 'number'
+                type: 'number',
+                minimum: 0x000000,
+                maximum: 0xFFFFFF
             }
         },
         psPower: {
