@@ -121,18 +121,31 @@ export class DefaultPsnClient implements PsnClient {
     }
 
     async getFriends(): Promise<{ [onlineId: string]: string }> {
-        const accountIds = (
-            await this.get<PsnFriends>('users/me/friends')
-        ).friends;
-        const friends = (
-            await this.get<{ profiles: { onlineId: string }[] }>(
-                'users/profiles',
-                { accountIds }
-            )
-        ).profiles;
-        return Object.fromEntries(
-            accountIds.map((id, index) => [friends[index].onlineId, id])
-        );
+        try {
+            const accountIds = (
+                await this.get<PsnFriends>('users/me/friends')
+            ).friends;
+            const friends = (
+                await this.get<{ profiles: { onlineId: string }[] }>(
+                    'users/profiles',
+                    { accountIds }
+                )
+            ).profiles;
+            return Object.fromEntries(
+                accountIds.map((id, index) => [friends[index].onlineId, id])
+            );
+        } catch (error) {
+            console.error(`Get PSN friends failed! [${new Date().toISOString().replace('T', ' ').substr(0, 19)}] ${error.message}`);
+            if (axios.isAxiosError(error) && error.request.method) {
+                console.error(`> ${error.request.method} ${error.request.path}`);
+                if (error.response) {
+                    console.error(`< ${error.response?.status} ${error.response?.statusText}`);
+                    console.error(error.response.data);
+                }
+                console.error();
+            }
+            throw error;
+        }
     }
 
     async getPresences(accountIds: string[]): Promise<{ [accountId: string]: boolean; }> {

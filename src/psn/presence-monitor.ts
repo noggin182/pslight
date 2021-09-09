@@ -45,7 +45,7 @@ export class PresenceMonitor {
                 } catch (error) {
                     errorManager.set(ErrorStates.PsnPolling);
                     console.error(`PSN poll failed! [${new Date().toISOString().replace('T', ' ').substr(0, 19)}] ${error.message}`);
-                    if (axios.isAxiosError(error)) {
+                    if (axios.isAxiosError(error) && error.request.method) {
                         console.error(`> ${error.request.method} ${error.request.path}`);
                         if (error.response) {
                             console.error(`< ${error.response?.status} ${error.response?.statusText}`);
