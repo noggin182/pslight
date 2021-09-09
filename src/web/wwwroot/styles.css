@@ -1,0 +1,163 @@
+body {
+  background-color: #1e1e1e;
+  font-family: Consolas, monaco, "Courier New", monospace;
+  font-size: 14px;
+  color: white;
+  padding: 0 15px;
+}
+
+details {
+  position: relative;
+}
+
+details:before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  border-left: 1px solid #808080;
+}
+
+details summary {
+  list-style-type: none;
+  cursor: pointer;
+}
+
+details > summary:before {
+  position: absolute;
+  left: -16px;
+  top: 2px;
+  bottom: 0;
+
+  content: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAABgSURBVChTY5STk/vPQCQAK25vb4dycYPKykoGFiibITo6GsrCBEuXLgXTTGASDTx69AjKQgVYFeMCKIpBJsJMRWbDAIpioGfBGJ0NA+Q7AwbQTYQBeNDBggcfICEGGRgAUSEbEsXKA9oAAAAASUVORK5CYII=");
+  line-height: 0;
+  box-sizing: border-box;
+  padding: 2px 1px 0 1px;
+}
+
+details[open] > summary:before {
+  content: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAxSURBVChTY5CTk/tPLAYrXrp0KUGMohimGxums+JHjx5hYJyKcWE6KiaE4YqJw3L/AUEw4S7/NLCAAAAAAElFTkSuQmCC");
+}
+
+details > summary:hover:before,
+details > summary:focus-visible:before {
+  background-color: #ffffff4d;
+}
+
+details:not([open]) summary:after {
+  content: "{ … }";
+}
+
+label {
+  pointer-events: none;
+}
+
+label,
+details.lights > summary > label {
+  color: #9cdcf0;
+}
+
+summary label {
+  color: #d7ba7d;
+}
+
+label:after {
+  content: ": ";
+  color: white;
+}
+
+code {
+  display: block;
+}
+
+code:last-child:after {
+  content: "\0a";
+}
+
+li,
+u {
+  color: #b5ce9b;
+  text-decoration: none;
+}
+
+span {
+  color: #ce915b;
+}
+
+u:after,
+span:after {
+  content: "\a";
+  white-space: pre;
+}
+
+ol {
+  margin: 0;
+  padding: 0;
+  list-style-type: "- ";
+  list-style-position: outside;
+}
+
+li {
+  margin: 0;
+}
+
+details > label,
+details li,
+details details > summary > label {
+  margin-left: 4ch;
+}
+
+details details > label,
+details details li,
+details details details > summary > label {
+  margin-left: 8ch;
+}
+
+details details details > label,
+details details details li,
+details details details details > summary > label {
+  margin-left: 12ch;
+}
+
+details details details details > label,
+details details details details li,
+details details details details details > summary > label {
+  margin-left: 16ch;
+}
+
+details.lights > summary span {
+  display: inline-block;
+  height: 11px;
+  vertical-align: middle;
+  border: 1px solid #cccccc;
+  margin-right: 1ch;
+}
+
+input[type="range"] {
+  height: 1em;
+  top: 2px;
+  position: relative;
+  margin-left: 1.25ch;
+}
+
+u[role="checkbox"] {
+  cursor: pointer;
+}
+
+u[role="checkbox"][disabled] {
+  opacity: 0.3;
+}
+
+u[role="checkbox"]:before {
+  margin: 0 0.5ch;
+  top: 1px;
+  position: relative;
+  color: white;
+  content: "☐";
+}
+
+u[role="checkbox"][aria-checked="true"]:before {
+  content: "☑";
+}

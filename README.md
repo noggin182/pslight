@@ -1,4 +1,4 @@
-# pslight
+# PSlight
 
 A small app to provide ambient lighting for a PS5 based on its power status and who is currently logged in. It is designed to be run on a Raspbery Pi with a strip of addressable RGB leds attached.
 

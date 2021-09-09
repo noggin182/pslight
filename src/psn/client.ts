@@ -4,19 +4,7 @@ import queryString from 'querystring';
 import { Constants } from '../constants';
 import { PsnBasicPresences, PsnFriends, Token } from './models';
 
-export interface PsnClient {
-    getFriends(): Promise<{ [onlineId: string]: string }>;
-    getPresences(accountIds: string[]): Promise<{ [accountId: string]: boolean; }>;
-    setPresence?(accountIds: string, presence: boolean): void;
-}
-
-export class PsnClientFactory {
-    static create: () => PsnClient = () => {
-        return new DefaultPsnClient();
-    }
-}
-
-export class DefaultPsnClient implements PsnClient {
+export class PsnClient {
     constructor() {
         try {
             const data = readFileSync(`${__dirname}/../../psn.json`);

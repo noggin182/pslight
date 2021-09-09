@@ -1,18 +1,31 @@
 import dotenv from 'dotenv';
 import { Gpio } from 'onoff';
+import { argv } from 'process';
 import readline from 'readline';
-import { distinctUntilChanged } from 'rxjs';
+import { of } from 'rxjs';
 import { Constants } from './constants';
 import { LedManager } from './led-manager';
 import { PsPowerMonitor } from './ps-power-monitor';
-import { PsnClientFactory } from './psn/client';
-import { PresenceMonitor } from './psn/presence-monitor';
+import { DefaultPresenceMonitor } from './psn/presence-monitor';
+import { MockedPresenceMonitor } from './psn/presence-monitor.mocked';
 import { attachWs281x } from './rpi/led-strip';
 import { fromNumber, getPlayerColor } from './utils/color';
-import { startWebServer } from './web-server';
+import { onlyIf } from './utils/utils';
+import { WebServer } from './web/web-server';
 
 const main = async () => {
     dotenv.config();
+
+    let mockedPresences = false;
+    if (argv[2]) {
+        if (argv[2] === '-mocked-presences') {
+            mockedPresences = true;
+        } else {
+            console.error('Unknown argument:', argv[2]);
+            process.exit(1);
+        }
+    }
+
     let powerGpio: Gpio | undefined = undefined;
     const ledManager = new LedManager(Constants.numberOfLeds);
 
@@ -21,30 +34,18 @@ const main = async () => {
         powerGpio = new Gpio(Constants.powerGpio, 'in', 'both');
     }
 
-    const psnClient = PsnClientFactory.create();
-    const friendIdMap = await psnClient.getFriends();
-    const prefered = process.env.PSLIGHT_FRIENDS;
-
-    const friendAccounts = prefered
-        ? prefered.split(',').map(onlineId => [onlineId, friendIdMap[onlineId]]).filter(kvp => kvp[1])
-        : Object.entries(friendIdMap).slice(0, 4);
-
-    console.log('Monitoring for friends: ' + friendAccounts.map(f => f[0]).join(', '));
-    const monitor = new PresenceMonitor(psnClient);
-    for (const [onlineId, accountId] of friendAccounts) {
-        const span = ledManager.addSpan(getPlayerColor(onlineId), 2);
-        monitor.watch(accountId).subscribe(online => span.enable(online));
-    }
-
-    const powerOnSpan = ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1);
-    ledManager.addSpan(fromNumber(Constants.colors.standby), 0).enable(true);
-
     const psPowerMonitor = new PsPowerMonitor(powerGpio);
 
-    psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
-        powerOnSpan.enable(power);
-        monitor.enable(power);
-    });
+    const monitor = mockedPresences ? new MockedPresenceMonitor() : await DefaultPresenceMonitor.create(psPowerMonitor);
+    for (const [onlineId, profile] of Object.entries(monitor.profiles)) {
+        ledManager.addSpan(
+            getPlayerColor(onlineId),
+            2,
+            profile.online$.pipe(onlyIf(psPowerMonitor.powerStatus$)));
+    }
+
+    ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1, psPowerMonitor.powerStatus$);
+    ledManager.addSpan(fromNumber(Constants.colors.standby), 0, of(true));
 
     process.on('SIGINT', () => {
         // turn off the leds and then exit the process
@@ -56,7 +57,7 @@ const main = async () => {
             .on('SIGINT', () => process.emit('SIGINT', 'SIGINT'));
     }
 
-    startWebServer(Constants.port, ledManager, psnClient, psPowerMonitor);
+    new WebServer(Constants.port, ledManager, monitor, psPowerMonitor);
 };
 
 main();
