@@ -41,7 +41,7 @@ export class WebServer {
 
         app.listen(port, () => {
             console.log(`API listening on http://${hostname()}:${port}/api/pslight`);
-            console.log(`Harness listening on http://${hostname()}:${port}/test`);
+            console.log(`Harness listening on http://${hostname()}:${port}/`);
         });
     }
 
@@ -71,9 +71,8 @@ export class WebServer {
     }
 
     private publishSchema(app: Express, schema: JSONSchema4, path: string[], source: unknown) {
-        // TODO: check error handles in subscribe calls
+        // TODO: check error handlers in subscribe calls
         const propName = schema.description ?? (path.length ? path[path.length - 1] : 'param');
-        console.info('Adding endpoint', '/api/' + path.join('/'));
         app.get('/api/' + path.join('/'),
             this.appendSlash(schema),
             (request, response, next) => {
