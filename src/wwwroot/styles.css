@@ -3,19 +3,7 @@ body {
   font-family: Consolas, monaco, "Courier New", monospace;
   font-size: 14px;
   color: white;
-}
-
-:root {
-  --collapse-border: "<rect x='0' y='0' width='9' height='9' fill='red'/>";
-  --collapse-line-horz: "<rect x='0' y='2' width='5' height='1' fill='red'/>";
-  --collapse-line-vert: "<rect x='0' y='2' width='5' height='1' fill='red'/>";
-}
-
-main {
-  margin-left: 10px;
-  padding-left: 10px;
-  position: relative;
-  white-space: nowrap;
+  padding: 0 15px;
 }
 
 details {
@@ -49,13 +37,13 @@ details > summary:before {
   padding: 2px 1px 0 1px;
 }
 
+details[open] > summary:before {
+  content: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAxSURBVChTY5CTk/tPLAYrXrp0KUGMohimGxums+JHjx5hYJyKcWE6KiaE4YqJw3L/AUEw4S7/NLCAAAAAAElFTkSuQmCC");
+}
+
 details > summary:hover:before,
 details > summary:focus-visible:before {
   background-color: #ffffff4d;
-}
-
-details[open] > summary:before {
-  content: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAxSURBVChTY5CTk/tPLAYrXrp0KUGMohimGxums+JHjx5hYJyKcWE6KiaE4YqJw3L/AUEw4S7/NLCAAAAAAElFTkSuQmCC");
 }
 
 details:not([open]) summary:after {
@@ -82,7 +70,6 @@ label:after {
 
 code {
   display: block;
-  /* margin-left: 4ch; */
 }
 
 code:last-child:after {
@@ -103,10 +90,6 @@ u:after,
 span:after {
   content: "\a";
   white-space: pre;
-}
-
-main {
-  counter-reset: indent-counter;
 }
 
 ol {
@@ -148,5 +131,33 @@ details.lights > summary span {
   display: inline-block;
   height: 11px;
   vertical-align: middle;
-  width: 108px;
+  border: 1px solid #cccccc;
+  margin-right: 1ch;
+}
+
+input[type="range"] {
+  height: 1em;
+  top: 2px;
+  position: relative;
+  margin-left: 1.25ch;
+}
+
+u[role="checkbox"] {
+  cursor: pointer;
+}
+
+u[role="checkbox"][disabled] {
+  opacity: 0.3;
+}
+
+u[role="checkbox"]:before {
+  margin: 0 0.5ch;
+  top: 1px;
+  position: relative;
+  color: white;
+  content: "☐";
+}
+
+u[role="checkbox"][aria-checked="true"]:before {
+  content: "☑";
 }

@@ -1,107 +1,113 @@
-
 const eventSource = new window.EventSource('/api/pslight/?markers=writable');
-const updaters = {};
+const GAMMA = 0.6;
 
 eventSource.addEventListener('complete', () => {
     eventSource.close();
 });
 
-eventSource.onmessage = (message) => {
-    const data = JSON.parse(message.data, {});
-    if (!updaters.pslight) {
-        createView(data, document.querySelector('main'), [], updaters);
-    } else {
-        updaters.pslight(data.pslight);
-    }
-}
+eventSource.addEventListener('message', (intialMessage) => {
+    const intialData = JSON.parse(intialMessage.data);
+    const updater = createView(intialData, document.querySelector('main'), '/api', {});
 
-function createLabel(text) {
-    const lbl = document.createElement('label');
-    lbl.innerText = text;
-    return lbl;
-}
+    eventSource.addEventListener('message', (message) => {
+        updater(JSON.parse(message.data));
+    });
+}, { once: true });
 
-function createElement(parent, type) {
+
+function createElement(parent, type, text) {
     const el = document.createElement(type);
+    if (text) {
+        el.innerText = text
+    }
     parent.appendChild(el);
     return el;
 }
 
-function createView(object, container, path, updaters) {
+function fixGamma(value) {
+    return 0 |
+        Math.round((((value >> 0x00) & 0xFF) / 0xFF) ** GAMMA * 0xFF) << 0x00 |
+        Math.round((((value >> 0x08) & 0xFF) / 0xFF) ** GAMMA * 0xFF) << 0x08 |
+        Math.round((((value >> 0x10) & 0xFF) / 0xFF) ** GAMMA * 0xFF) << 0x10;
+}
+
+function createView(object, container, path) {
+    const updaters = {};
     for (const [name, value] of Object.entries(object).filter(([name]) => !name.endsWith('$writable'))) {
         const writable = object[name + '$writable'] === true;
 
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
+        if (value && typeof value === 'object') {
+            const details = createElement(container, 'details');
+            const summary = createElement(details, 'summary');
+            if (name !== 'lights') {
+                details.setAttribute('open', true);
+            }
+            createElement(summary, 'label', name);
 
-            const details = document.createElement('details');
-            details.setAttribute('open', true);
-            const summary = document.createElement('summary');
-            summary.appendChild(createLabel(name));
-            details.appendChild(summary);
-            container.appendChild(details);
-
-            const childUpdaters = {};
-
-            createView(value, details, [...path, name], childUpdaters);
-            updaters[name] = (v) => {
-                for (const [childName, childValue] of Object.entries(v)) {
-                    childUpdaters[childName]?.(childValue);
+            if (!Array.isArray(value)) {
+                updaters[name] = createView(value, details, `${path}/${name}`);
+            } else {
+                const list = createElement(details, 'ol');
+                const listItems = value.map(() => createElement(list, 'li'));
+                if (name === 'lights') {
+                    details.classList.add('lights');
+                    const lights = createElement(summary, 'span');
+                    const scale = 2;
+                    lights.style.width = value.length * scale + 'px';
+                    updaters[name] = (v) => {
+                        lights.style.background = 'linear-gradient(to right, ' + v.map((l, i) => '#' + fixGamma(l).toString(16).padStart(6, '0') + ' ' + (i * 2) + 'px').join(', ') + ')';
+                        listItems.forEach((el, i) => el.innerText = '0x' + v[i].toString(16).padStart(6, '0'));
+                    };
+                } else {
+                    updaters[name] = (v) => {
+                        listItems.forEach((el, i) => el.innerText = JSON.stringify(v[i]));
+                    };
                 }
-            };
-
-
-
-        } else if (name === 'lights') {
-            const details = document.createElement('details');
-            const summary = document.createElement('summary');
-
-            details.classList.add('lights');
-            summary.appendChild(createLabel(name));
-            details.appendChild(summary);
-            container.appendChild(details);
-
-            const list = document.createElement('ol');
-            details.appendChild(list);
-            const listItems = value.map(() => createElement(list, 'li'));
-
-            const lights = document.createElement('span');
-            summary.appendChild(document.createTextNode('['));
-            summary.appendChild(lights);
-            summary.appendChild(document.createTextNode('] '));
-            const scale = 2;
-            lights.style.width = value.length * scale + 'px';
-
-            (updaters[name] = (v) => {
-                lights.style.background = 'linear-gradient(to right, ' + v.map((l, i) => '#' + l.toString(16).padStart(6, '0') + ' ' + (i * 2) + 'px').join(', ') + ')';
-                listItems.forEach((el, i) => el.innerText = '0x' + v[i].toString(16).padStart(6, '0'));
-            })(value);
-
+                updaters[name](value);
+            }
         } else {
-            container.appendChild(createLabel(name));
-
-            const code = document.createElement(typeof value === 'string' ? 'span' : 'u');
-            container.appendChild(code);
-            const text = document.createTextNode(value.toString());
+            createElement(container, 'label', name);
+            const code = createElement(container, typeof value === 'string' ? 'span' : 'u');
+            const text = document.createTextNode('');
             code.appendChild(text);
             let current = value;
             updaters[name] = (v) => { text.data = v.toString(); current = v; };
 
             if (writable && typeof value === 'boolean') {
-                const btn = document.createElement('button');
-                btn.innerText = 'Toggle';
-                btn.addEventListener('click', () => {
-                    send(path.join('/') + '/' + name, { [name]: !current });
+                code.setAttribute('role', 'checkbox');
+                code.setAttribute('aria-checked', value);
+                code.setAttribute('tab-index', '1');
+                code.addEventListener('click', () => {
+                    code.setAttribute('disabled', true);
+                    send(`${path}/${name}`, { [name]: !current });
                 });
-                code.appendChild(btn);
+                updaters[name] = (v) => { text.data = v.toString(); current = v; code.setAttribute('aria-checked', v); code.removeAttribute('disabled') };
+            } else if (writable && typeof value === 'number') {
+                var slider = createElement(code, 'input');
+                slider.type = "range";
+                slider.min = "0";
+                slider.max = "1";
+                slider.step = "0.25";
+                slider.value = current;
+                slider.addEventListener('input', () => {
+                    send(`${path}/${name}`, { [name]: +slider.value });
+                })
+                updaters[name] = (v) => { text.data = v.toFixed(2); current = v; slider.value = v };
             }
+            updaters[name](value);
+        }
+    }
+
+    return function update(partial) {
+        for (const [name, value] of Object.entries(partial)) {
+            updaters[name]?.(value);
         }
     }
 }
 
-
 function send(url, data) {
     const body = JSON.stringify(data);
-    fetch('/api/' + url, {
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
