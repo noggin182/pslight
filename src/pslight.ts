@@ -5,7 +5,7 @@ import readline from 'readline';
 import { of } from 'rxjs';
 import { Constants } from './constants';
 import { LedManager } from './led-manager';
-import { PsPowerMonitor } from './ps-power-monitor';
+import { NetworkPsPowerMonitor } from './ps-power/network-ps-power-monitor';
 import { DefaultPresenceMonitor } from './psn/presence-monitor';
 import { MockedPresenceMonitor } from './psn/presence-monitor.mocked';
 import { attachWs281x } from './rpi/led-strip';
@@ -26,25 +26,22 @@ const main = async () => {
         }
     }
 
-    let powerGpio: Gpio | undefined = undefined;
     const ledManager = new LedManager(Constants.numberOfLeds);
+    const psPowerStatus$ = new NetworkPsPowerMonitor().powerStatus$;
 
     if (Gpio.accessible) {
         await attachWs281x(ledManager);
-        powerGpio = new Gpio(Constants.powerGpio, 'in', 'both');
     }
 
-    const psPowerMonitor = new PsPowerMonitor(powerGpio);
-
-    const monitor = mockedPresences ? new MockedPresenceMonitor() : await DefaultPresenceMonitor.create(psPowerMonitor);
+    const monitor = mockedPresences ? new MockedPresenceMonitor() : await DefaultPresenceMonitor.create(psPowerStatus$);
     for (const [onlineId, profile] of Object.entries(monitor.profiles)) {
         ledManager.addSpan(
             getPlayerColor(onlineId),
             2,
-            profile.online$.pipe(onlyIf(psPowerMonitor.powerStatus$)));
+            profile.online$.pipe(onlyIf(psPowerStatus$)));
     }
 
-    ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1, psPowerMonitor.powerStatus$);
+    ledManager.addSpan(fromNumber(Constants.colors.powerOn), 1, psPowerStatus$);
     ledManager.addSpan(fromNumber(Constants.colors.standby), 0, of(true));
 
     process.on('SIGINT', () => {
@@ -57,7 +54,7 @@ const main = async () => {
             .on('SIGINT', () => process.emit('SIGINT', 'SIGINT'));
     }
 
-    new WebServer(Constants.port, ledManager, monitor, psPowerMonitor);
+    new WebServer(Constants.port, ledManager, monitor, psPowerStatus$);
 };
 
 main();

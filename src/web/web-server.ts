@@ -3,9 +3,9 @@ import { ValidationError, Validator } from 'express-json-validator-middleware';
 import { JSONSchema4 } from 'json-schema';
 import { hostname } from 'os';
 import path from 'path';
-import { EMPTY, first, map, of, Subject, takeUntil } from 'rxjs';
+import { EMPTY, first, map, Observable, of, Subject, takeUntil } from 'rxjs';
+import { errorManager } from '../error-manager';
 import { LedManager } from '../led-manager';
-import { PsPowerMonitor } from '../ps-power-monitor';
 import { PresenceMonitor } from '../psn/presence-monitor';
 import { toNumber } from '../utils/color';
 import { deepPick, flattenAndWatch, isObject, stripDollar } from '../utils/utils';
@@ -17,7 +17,7 @@ export class WebServer {
     constructor(port: number,
         private readonly ledManager: LedManager,
         private readonly presenceMonitor: PresenceMonitor,
-        private readonly psPowerMonitor: PsPowerMonitor) {
+        private readonly psPowerStatus$: Observable<boolean>) {
 
         const app = express();
 
@@ -55,7 +55,7 @@ export class WebServer {
         config: this.config,
         brightness$: this.ledManager.brightness$,
         lights$: this.ledManager.ledValues$.pipe(map(leds => leds.map(toNumber))),
-        psPower$: this.psPowerMonitor.powerStatus$,
+        psPower$: this.psPowerStatus$,
         forcedError$: errorManager.manualError$,
         profiles$: this.presenceMonitor.profiles
     } as const;

@@ -2,7 +2,6 @@ import axios from 'axios';
 import { BehaviorSubject, distinctUntilChanged, Observable } from 'rxjs';
 import { Constants } from '../constants';
 import { errorManager, ErrorStates } from '../error-manager';
-import { PsPowerMonitor } from '../ps-power-monitor';
 import { PsnClient } from './client';
 
 export interface PresenceMonitor {
@@ -17,17 +16,17 @@ export interface PresenceMonitor {
 export class DefaultPresenceMonitor implements PresenceMonitor {
     constructor(
         private readonly psnClient: PsnClient,
-        psPowerMonitor: PsPowerMonitor,
+        psPower$: Observable<boolean>,
         public readonly profiles: { readonly [onlineId: string]: { readonly online$: Observable<boolean> } },
         private readonly accountPresence$map: { readonly [accountId: string]: BehaviorSubject<boolean> }) {
 
-        psPowerMonitor.powerStatus$.pipe(distinctUntilChanged()).subscribe(power => {
+        psPower$.pipe(distinctUntilChanged()).subscribe(power => {
             // could we replace the polling with RxJs interval+expand?
             this.enable(power);
         });
     }
 
-    static async create(psPowerMonitor: PsPowerMonitor): Promise<PresenceMonitor> {
+    static async create(psPower$: Observable<boolean>): Promise<PresenceMonitor> {
         const psnClient = new PsnClient();
         const friendIdMap = await psnClient.getFriends();
         const prefered = process.env.PSLIGHT_FRIENDS;
@@ -40,7 +39,7 @@ export class DefaultPresenceMonitor implements PresenceMonitor {
         const accountPresence$map = Object.fromEntries(friendAccounts.map(([onlineId, accountId]) => [accountId, profiles[onlineId].online$]));
 
         console.log('Monitoring profiles: ' + Object.keys(profiles).join(', '));
-        return new DefaultPresenceMonitor(psnClient, psPowerMonitor, profiles, accountPresence$map);
+        return new DefaultPresenceMonitor(psnClient, psPower$, profiles, accountPresence$map);
     }
 
     readonly isMocked = false;
@@ -59,6 +58,10 @@ export class DefaultPresenceMonitor implements PresenceMonitor {
         }
     }
 
+    private hasMessage(error: unknown): error is { message: unknown } {
+        return !!error && ('message' in <Record<string, unknown>>error);
+    }
+
     private startPolling() {
         let active = true;
         const poll = async () => {
@@ -72,9 +75,9 @@ export class DefaultPresenceMonitor implements PresenceMonitor {
                         }
                         errorManager.clear(ErrorStates.PsnPolling);
                     }
-                } catch (error) {
+                } catch (error: unknown) {
                     errorManager.set(ErrorStates.PsnPolling);
-                    console.error(`PSN poll failed! [${new Date().toISOString().replace('T', ' ').substr(0, 19)}] ${error.message}`);
+                    console.error(`PSN poll failed! [${new Date().toISOString().replace('T', ' ').substring(0, 19)}] ${this.hasMessage(error) ? error.message : error}`);
                     if (axios.isAxiosError(error) && error.request.method) {
                         console.error(`> ${error.request.method} ${error.request.path}`);
                         if (error.response) {
