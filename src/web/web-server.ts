@@ -46,7 +46,6 @@ export class WebServer {
     }
 
     private readonly config: Schema['config'] = {
-        mockedPower: this.psPowerMonitor.isMocked,
         mockedPresences: this.presenceMonitor.isMocked,
         version: '0.1.0-alpha',
         compatabilityLevel: 2
@@ -57,6 +56,7 @@ export class WebServer {
         brightness$: this.ledManager.brightness$,
         lights$: this.ledManager.ledValues$.pipe(map(leds => leds.map(toNumber))),
         psPower$: this.psPowerMonitor.powerStatus$,
+        forcedError$: errorManager.manualError$,
         profiles$: this.presenceMonitor.profiles
     } as const;
 

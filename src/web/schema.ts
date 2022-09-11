@@ -2,17 +2,19 @@ import { JSONSchema4 } from 'json-schema';
 
 const constSchema = {
     type: 'object',
-    required: ['config', 'brightness', 'lights', 'psPower', 'profiles'],
+    required: ['config', 'forcedError', 'brightness', 'lights', 'psPower', 'profiles'],
     properties: {
         config: {
             type: 'object',
-            required: ['mockedPower', 'mockedPresences', 'version', 'compatabilityLevel'],
+            required: ['mockedPresences', 'version', 'compatabilityLevel'],
             properties: {
-                mockedPower: { type: 'boolean' },
                 mockedPresences: { type: 'boolean' },
                 version: { type: 'string' },
                 compatabilityLevel: { type: 'number', enum: [2] }
             }
+        },
+        forcedError: {
+            type: 'boolean'
         },
         brightness: {
             type: 'number',
