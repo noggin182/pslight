@@ -1,4 +1,4 @@
-import { BehaviorSubject, distinctUntilChanged, interval, map, Observable, of, skip, switchMap } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, interval, map, Observable, of, share, skip, switchMap } from 'rxjs';
 import { errorManager } from './error-manager';
 import { ActiveSpansSnapshot, DefaultLedStripAnimator, LedStripAnimator } from './led-strip-animator';
 import { Color, Colors, mapComponent } from './utils/color';
@@ -7,10 +7,11 @@ import { WritableSubject } from './utils/writable-subject';
 export class LedManager {
     constructor(public readonly length: number) {
         // When we have an error, pulse the ends of the LED strip red
+        const errorPulse = interval(1000).pipe(map(v => v % 2 == 0), share());
         const errorLights$ = errorManager.hasAny$
             .pipe(
                 distinctUntilChanged(),
-                switchMap(hasErrors => hasErrors ? interval(1000).pipe(map(v => v % 2 == 0)) : of(false)),
+                switchMap(hasErrors => hasErrors ? errorPulse : of(false)),
             );
 
         this.addSpan(Colors.RED, Infinity, errorLights$);

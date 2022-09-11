@@ -13,8 +13,6 @@ export class ErrorManager {
             if (state) {
                 this.set(ErrorStates.Manual);
                 this.hasAny$.next(true);
-                this.hasAny$.next(true);
-                this.hasAny$.next(true);
             } else {
                 this.clear(ErrorStates.Manual);
             }
