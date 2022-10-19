@@ -26,7 +26,7 @@ export const Constants = {
     psn: {
         clientAuth: 'YWM4ZDE2MWEtZDk2Ni00NzI4LWIwZWEtZmZlYzIyZjY5ZWRjOkRFaXhFcVhYQ2RYZHdqMHY=',
         tokenGrace: 60_000, // reduce the lifetime of all tokens by one minute
-        api: 'https://m.np.playstation.net/api/userProfile/v1/internal/',
+        api: 'https://m.np.playstation.com/api/userProfile/v1/internal/',
 
         npssoExchange: 'https://ca.account.sony.com/api/authz/v3/oauth/authorize?' +
             queryString.encode({
